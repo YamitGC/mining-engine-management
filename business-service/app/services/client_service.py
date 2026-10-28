@@ -83,3 +83,4 @@ class ClientService:
         db.commit()
         db.refresh(client)
         return client
+
