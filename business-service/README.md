@@ -33,6 +33,14 @@ Este servicio opera de forma **100% independiente** del servicio de autenticaci�
                        │
                        ▼
             ┌─────────────────────┐
+            │  Capa de Servicios  │  (app/services/)
+            │ - ClientService     │
+            │ - EngineService     │
+            │ - RepairOrderService│
+            └──────────┬──────────┘
+                       │
+                       ▼
+            ┌─────────────────────┐
             │  Schemas Pydantic   │  (app/schemas/)
             │ (DTOs y Validación) │
             └──────────┬──────────┘
