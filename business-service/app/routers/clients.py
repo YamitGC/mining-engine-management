@@ -126,3 +126,4 @@ def update_client(
     db.commit()
     db.refresh(client)
     return client
+

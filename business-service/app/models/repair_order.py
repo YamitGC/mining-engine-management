@@ -45,3 +45,4 @@ class RepairOrder(Base):
     engine = relationship("Engine", back_populates="repair_orders")
     client = relationship("Client")
     status_history = relationship("RepairOrderHistory", back_populates="repair_order", cascade="all, delete-orphan", order_by="RepairOrderHistory.created_at.desc()")
+

@@ -24,3 +24,4 @@ class RepairOrderHistory(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     repair_order = relationship("RepairOrder", back_populates="status_history")
+

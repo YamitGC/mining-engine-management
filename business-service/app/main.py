@@ -7,6 +7,7 @@ from app.database.base import Base
 import app.models # Asegurar que todos los modelos se registren en Base.metadata
 from app.routers.clients import router as clients_router
 from app.routers.engines import router as engines_router
+from app.routers.repair_orders import router as repair_orders_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -48,3 +49,5 @@ def health_check():
 # Registrar Routers
 app.include_router(clients_router)
 app.include_router(engines_router)
+app.include_router(repair_orders_router)
+
