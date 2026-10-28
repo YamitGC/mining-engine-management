@@ -60,3 +60,4 @@ class RepairOrderResponse(BaseModel):
     client: Optional[ClientResponse] = None
     engine: Optional[EngineResponse] = None
     status_history: Optional[List[RepairOrderHistoryResponse]] = []
+

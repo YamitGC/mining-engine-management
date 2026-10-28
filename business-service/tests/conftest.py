@@ -49,3 +49,4 @@ def auth_headers():
     }
     token = jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
     return {"Authorization": f"Bearer {token}"}
+

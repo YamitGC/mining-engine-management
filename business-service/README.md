@@ -185,3 +185,4 @@ JWT_SECRET=super_secret_jwt_key_min_32_characters_long_12345
 JWT_ALGORITHM=HS256
 BUSINESS_DATABASE_URL=postgresql://admin:secretpassword@localhost:5433/business_db
 ```
+
