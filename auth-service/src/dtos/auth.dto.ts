@@ -27,3 +27,4 @@ export type RegisterDto = z.infer<typeof registerSchema>;
 export type LoginDto = z.infer<typeof loginSchema>;
 export type UpdateUserDto = z.infer<typeof updateUserSchema>;
 export type UpdateStatusDto = z.infer<typeof updateStatusSchema>;
+

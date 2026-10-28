@@ -24,3 +24,4 @@ router.put('/:id', authorizeRoles('ADMIN'), validate(updateUserSchema), controll
 router.patch('/:id/status', authorizeRoles('ADMIN'), validate(updateStatusSchema), controller.updateStatus);
 
 export default router;
+

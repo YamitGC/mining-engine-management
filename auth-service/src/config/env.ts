@@ -15,3 +15,4 @@ export const config = {
   },
   databaseUrl: process.env.AUTH_DATABASE_URL || 'postgresql://admin:secretpassword@localhost:5433/auth_db'
 };
+

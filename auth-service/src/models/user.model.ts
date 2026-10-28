@@ -27,3 +27,4 @@ export interface JwtPayload {
   role: UserRole;
   name: string;
 }
+

@@ -33,3 +33,4 @@ export async function initDatabase(): Promise<void> {
     client.release();
   }
 }
+

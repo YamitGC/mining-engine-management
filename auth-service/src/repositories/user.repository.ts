@@ -109,3 +109,4 @@ export class UserRepository {
     return parseInt(result.rows[0].count, 10);
   }
 }
+
