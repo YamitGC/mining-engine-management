@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Cog, Plus, Search, Filter, AlertCircle, CheckCircle2, XCircle, Building2 } from 'lucide-react';
+import { Cpu, Plus, Search, Filter, AlertTriangle, CheckCircle2, XCircle, Building2, Zap, Cog } from 'lucide-react';
 import { businessApi } from '../api/businessApi';
 import { Engine, Client } from '../types';
 import { Pagination } from '../components/Pagination';
@@ -48,7 +48,7 @@ export const EnginesPage: React.FC = () => {
       setCurrentPage(1);
     } catch (err: any) {
       console.error(err);
-      setError('Error al cargar la información de motores o clientes.');
+      setError('Error al consultar el inventario de motores mineros.');
     } finally {
       setIsLoading(false);
     }
@@ -73,7 +73,7 @@ export const EnginesPage: React.FC = () => {
     setManufacturer('Caterpillar');
     setModel('');
     setEngineType('Diesel Turboalimentado');
-    setPowerCapacity('');
+    setPowerCapacity('3500 HP');
     setClientId(clients[0]?.id || '');
     setIsActive(true);
     setFormError(null);
@@ -97,7 +97,7 @@ export const EnginesPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!clientId) {
-      setFormError('Debe seleccionar un cliente propietario');
+      setFormError('Debe asociar un cliente minero al motor');
       return;
     }
 
@@ -107,20 +107,20 @@ export const EnginesPage: React.FC = () => {
     try {
       if (modalMode === 'create') {
         await businessApi.post('/engines', {
-          serial_number: serialNumber,
-          manufacturer,
-          model,
-          engine_type: engineType,
-          power_capacity: powerCapacity,
+          serial_number: serialNumber.trim(),
+          manufacturer: manufacturer.trim(),
+          model: model.trim(),
+          engine_type: engineType.trim(),
+          power_capacity: powerCapacity.trim(),
           client_id: Number(clientId),
         });
       } else if (selectedEngine) {
         await businessApi.put(`/engines/${selectedEngine.id}`, {
-          serial_number: serialNumber,
-          manufacturer,
-          model,
-          engine_type: engineType,
-          power_capacity: powerCapacity,
+          serial_number: serialNumber.trim(),
+          manufacturer: manufacturer.trim(),
+          model: model.trim(),
+          engine_type: engineType.trim(),
+          power_capacity: powerCapacity.trim(),
           client_id: Number(clientId),
           is_active: isActive,
         });
@@ -128,7 +128,7 @@ export const EnginesPage: React.FC = () => {
       setIsModalOpen(false);
       fetchData();
     } catch (err: any) {
-      const msg = err.response?.data?.detail || 'Error al guardar los datos del motor.';
+      const msg = err.response?.data?.detail || 'Error al persistir el registro del motor.';
       setFormError(msg);
     } finally {
       setIsSaving(false);
@@ -136,45 +136,54 @@ export const EnginesPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-6 max-w-7xl mx-auto">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-white/[0.06]">
         <div>
-          <h1 className="text-2xl font-bold text-slate-100">Parque de Motores Mineros</h1>
-          <p className="text-sm text-slate-400 mt-0.5">
-            Registro técnico de motores pesados, especificaciones y clientes asociados.
+          <div className="flex items-center gap-2 mb-1">
+            <span className="px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[10px] font-mono uppercase tracking-widest font-bold">
+              Flota de Motores Pesados
+            </span>
+            <span className="text-xs text-slate-400 font-mono">{engines.length} unidades inventariadas</span>
+          </div>
+          <h1 className="text-2xl md:text-3xl font-extrabold text-slate-100 tracking-tight font-sans">
+            Inventario & Ficha de Motores
+          </h1>
+          <p className="text-xs text-slate-400 mt-1 font-sans">
+            Especificaciones técnicas, fabricantes, cubicaje y vinculación con concesiones mineras.
           </p>
         </div>
+
         <button
           onClick={openCreateModal}
-          className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold px-4 py-2.5 rounded-xl text-sm transition-colors shadow-sm self-start sm:self-auto"
+          className="group inline-flex items-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold px-4 py-2.5 rounded-xl text-xs font-mono tracking-wide shadow-[0_0_20px_rgba(245,158,11,0.25)] transition-all duration-200 active:scale-95 self-start sm:self-auto"
         >
-          <Plus className="w-4 h-4" />
-          <span>Registrar Motor</span>
+          <Plus className="w-4 h-4" strokeWidth={2} />
+          <span>INGRESAR MOTOR</span>
         </button>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col sm:flex-row gap-3">
-        <div className="flex-1 flex items-center gap-3 bg-slate-950/60 px-3.5 py-2 rounded-lg border border-slate-800">
-          <Search className="w-4 h-4 text-slate-400" />
+      <div className="glass-panel p-3.5 rounded-2xl flex flex-col sm:flex-row gap-3">
+        <div className="flex-1 flex items-center gap-3 bg-[#070a12]/80 px-3.5 py-2 rounded-xl border border-white/[0.06]">
+          <Search className="w-4 h-4 text-slate-500 shrink-0" />
           <input
             type="text"
-            placeholder="Buscar por número de serie, fabricante o modelo..."
+            placeholder="Buscar por número de serie, fabricante (Caterpillar, Cummins, Komatsu) o modelo..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="bg-transparent border-none text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none w-full"
+            className="bg-transparent border-none text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none w-full font-mono"
           />
         </div>
 
-        <div className="flex items-center gap-2 min-w-[240px]">
-          <Filter className="w-4 h-4 text-slate-500" />
+        <div className="flex items-center gap-2 min-w-[260px]">
+          <Filter className="w-4 h-4 text-slate-500 shrink-0 ml-1" />
           <select
             value={selectedClientFilter}
             onChange={(e) => setSelectedClientFilter(e.target.value)}
-            className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-amber-500"
+            className="w-full bg-[#070a12] border border-white/[0.1] rounded-xl px-3 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:border-amber-500"
           >
-            <option value="">Todos los Clientes</option>
+            <option value="">TODOS LOS CLIENTES PROPIETARIOS</option>
             {clients.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name} ({c.id_number})
@@ -185,73 +194,83 @@ export const EnginesPage: React.FC = () => {
       </div>
 
       {error && (
-        <div className="p-4 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-400 text-sm">
-          {error}
+        <div className="p-4 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-rose-300 text-xs font-mono flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+          <span>{error}</span>
         </div>
       )}
 
       {/* Engines Table */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+      <div className="glass-panel rounded-2xl overflow-hidden shadow-2xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-950/70 text-slate-400 uppercase font-semibold border-b border-slate-800">
+            <thead className="bg-[#090d16]/80 text-slate-300 font-mono uppercase text-[11px] font-semibold border-b border-white/[0.06]">
               <tr>
-                <th className="py-3.5 px-6">Serie / Código</th>
-                <th className="py-3.5 px-6">Fabricante & Modelo</th>
-                <th className="py-3.5 px-6">Especificaciones</th>
-                <th className="py-3.5 px-6">Cliente Propietario</th>
-                <th className="py-3.5 px-6">Estado</th>
-                <th className="py-3.5 px-6 text-right">Acciones</th>
+                <th className="py-4 px-6">Código de Serie</th>
+                <th className="py-4 px-6">Fabricante & Modelo</th>
+                <th className="py-4 px-6">Especificaciones de Potencia</th>
+                <th className="py-4 px-6">Propietario</th>
+                <th className="py-4 px-6">Estado</th>
+                <th className="py-4 px-6 text-right">Gestión</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800 text-slate-300">
+            <tbody className="divide-y divide-white/[0.04] text-slate-300">
               {isLoading ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-slate-500">
-                    <div className="flex justify-center items-center gap-2">
-                      <div className="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
-                      <span>Cargando motores...</span>
+                  <td colSpan={6} className="py-16 text-center text-slate-400 font-mono">
+                    <div className="flex justify-center items-center gap-2.5">
+                      <div className="w-4 h-4 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin"></div>
+                      <span>CONSULTANDO PARQUE DE MAQUINARIA...</span>
                     </div>
                   </td>
                 </tr>
               ) : engines.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-slate-500">
-                    No se encontraron motores registrados.
+                  <td colSpan={6} className="py-16 text-center text-slate-400 font-mono">
+                    No se registran motores con los filtros aplicados.
                   </td>
                 </tr>
               ) : (
                 paginatedEngines.map((e) => (
-                  <tr key={e.id} className="hover:bg-slate-800/40 transition-colors">
-                    <td className="py-4 px-6 font-mono font-bold text-amber-400">
+                  <tr key={e.id} className="hover:bg-white/[0.02] transition-colors group">
+                    <td className="py-4 px-6 font-mono font-bold text-amber-400 tracking-wider">
                       <div className="flex items-center gap-2">
-                        <Cog className="w-4 h-4 text-amber-500" />
+                        <div className="p-1 rounded bg-amber-500/10 text-amber-400">
+                          <Cpu className="w-3.5 h-3.5" strokeWidth={1.75} />
+                        </div>
                         <span>{e.serial_number}</span>
                       </div>
                     </td>
                     <td className="py-4 px-6">
                       <p className="font-semibold text-slate-100">{e.manufacturer}</p>
-                      <p className="text-slate-400 text-[11px]">{e.model}</p>
-                    </td>
-                    <td className="py-4 px-6 text-slate-300">
-                      <p>{e.engine_type}</p>
-                      <p className="text-amber-500/80 font-medium text-[11px]">{e.power_capacity}</p>
+                      <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                        {e.model}
+                      </span>
                     </td>
                     <td className="py-4 px-6">
-                      <div className="flex items-center gap-1.5 text-slate-300">
-                        <Building2 className="w-3.5 h-3.5 text-slate-500" />
-                        <span>{e.client?.name || `Cliente #${e.client_id}`}</span>
+                      <div className="space-y-0.5 font-mono text-[11px]">
+                        <p className="text-slate-200">{e.engine_type}</p>
+                        <p className="text-amber-400 font-bold">{e.power_capacity}</p>
+                      </div>
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                        <div>
+                          <p className="font-medium text-slate-200">{e.client?.name || `Cliente #${e.client_id}`}</p>
+                          <p className="text-[10px] font-mono text-slate-400">{e.client?.id_number}</p>
+                        </div>
                       </div>
                     </td>
                     <td className="py-4 px-6">
                       {e.is_active ? (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                          <CheckCircle2 className="w-3 h-3" />
-                          Activo
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]"></span>
+                          Operativo
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-500/10 text-rose-400 border border-rose-500/30">
-                          <XCircle className="w-3 h-3" />
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-rose-500/10 text-rose-300 border border-rose-500/30">
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
                           Inactivo
                         </span>
                       )}
@@ -259,9 +278,9 @@ export const EnginesPage: React.FC = () => {
                     <td className="py-4 px-6 text-right">
                       <button
                         onClick={() => openEditModal(e)}
-                        className="text-xs font-medium text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 px-3 py-1.5 rounded-lg border border-amber-500/20 transition-colors"
+                        className="text-xs font-mono font-semibold text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 px-3 py-1.5 rounded-lg border border-amber-500/25 transition-all"
                       >
-                        Editar
+                        EDITAR
                       </button>
                     </td>
                   </tr>
@@ -270,6 +289,7 @@ export const EnginesPage: React.FC = () => {
             </tbody>
           </table>
         </div>
+
         <Pagination
           currentPage={currentPage}
           totalItems={engines.length}
@@ -280,34 +300,39 @@ export const EnginesPage: React.FC = () => {
 
       {/* Modal Crear / Editar */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg p-6 shadow-2xl relative">
-            <h3 className="text-lg font-bold text-slate-100 mb-1">
-              {modalMode === 'create' ? 'Registrar Nuevo Motor Minero' : 'Editar Ficha de Motor'}
-            </h3>
-            <p className="text-xs text-slate-400 mb-5">
-              Ingrese el número de serie único y especificaciones de ingeniería.
-            </p>
+        <div className="fixed inset-0 z-50 bg-[#070a12]/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="glass-panel rounded-2xl w-full max-w-lg p-6 md:p-8 shadow-2xl relative border border-white/[0.1]">
+            <div className="flex items-center justify-between pb-3 mb-4 border-b border-white/[0.06]">
+              <div>
+                <h3 className="text-base font-mono font-bold text-slate-100 uppercase tracking-wide">
+                  {modalMode === 'create' ? 'Alta de Motor en Taller' : 'Modificación de Ficha de Motor'}
+                </h3>
+                <p className="text-[11px] font-mono text-slate-400 mt-0.5">
+                  Registro de serie única con especificaciones de ingeniería
+                </p>
+              </div>
+              <Cpu className="w-5 h-5 text-amber-400" />
+            </div>
 
             {formError && (
-              <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl flex items-start gap-2.5 text-rose-400 text-xs">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl flex items-start gap-2.5 text-rose-300 text-xs font-mono">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400 mt-0.5" />
                 <span>{formError}</span>
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">
-                  Cliente Propietario *
+                <label className="block text-[11px] font-mono uppercase text-slate-400 mb-1">
+                  Empresa Propietaria *
                 </label>
                 <select
                   required
                   value={clientId}
                   onChange={(e) => setClientId(Number(e.target.value))}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-500"
+                  className="w-full bg-[#070a12] border border-white/[0.1] rounded-xl px-3 py-2 text-xs font-mono text-slate-100 focus:outline-none focus:border-amber-500"
                 >
-                  <option value="">Seleccione un cliente...</option>
+                  <option value="">Seleccione una empresa...</option>
                   {clients.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name} ({c.id_type} {c.id_number})
@@ -317,8 +342,8 @@ export const EnginesPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">
-                  Código Interno o Número de Serie *
+                <label className="block text-[11px] font-mono uppercase text-slate-400 mb-1">
+                  Número de Serie / Código Único *
                 </label>
                 <input
                   type="text"
@@ -326,56 +351,64 @@ export const EnginesPage: React.FC = () => {
                   placeholder="Ej: CAT-C175-9988"
                   value={serialNumber}
                   onChange={(e) => setSerialNumber(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-500 font-mono"
+                  className="w-full bg-[#070a12] border border-white/[0.1] rounded-xl px-3 py-2 text-xs font-mono text-slate-100 focus:outline-none focus:border-amber-500"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Fabricante *</label>
+                  <label className="block text-[11px] font-mono uppercase text-slate-400 mb-1">
+                    Fabricante *
+                  </label>
                   <input
                     type="text"
                     required
                     placeholder="Ej: Caterpillar, Cummins"
                     value={manufacturer}
                     onChange={(e) => setManufacturer(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-500"
+                    className="w-full bg-[#070a12] border border-white/[0.1] rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Modelo *</label>
+                  <label className="block text-[11px] font-mono uppercase text-slate-400 mb-1">
+                    Modelo *
+                  </label>
                   <input
                     type="text"
                     required
                     placeholder="Ej: C175-16, QSK60"
                     value={model}
                     onChange={(e) => setModel(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-500"
+                    className="w-full bg-[#070a12] border border-white/[0.1] rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-500"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Tipo de Motor *</label>
+                  <label className="block text-[11px] font-mono uppercase text-slate-400 mb-1">
+                    Tipo de Combustión *
+                  </label>
                   <input
                     type="text"
                     required
                     placeholder="Ej: Diesel Turbo V16"
                     value={engineType}
                     onChange={(e) => setEngineType(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-500"
+                    className="w-full bg-[#070a12] border border-white/[0.1] rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Potencia / Capacidad *</label>
+                  <label className="block text-[11px] font-mono uppercase text-slate-400 mb-1">
+                    Potencia / Capacidad *
+                  </label>
                   <input
                     type="text"
                     required
                     placeholder="Ej: 3500 HP / 2610 kW"
                     value={powerCapacity}
                     onChange={(e) => setPowerCapacity(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-500"
+                    className="w-full bg-[#070a12] border border-white/[0.1] rounded-xl px-3 py-2 text-xs font-mono text-slate-100 focus:outline-none focus:border-amber-500"
                   />
                 </div>
               </div>
@@ -384,34 +417,34 @@ export const EnginesPage: React.FC = () => {
                 <div className="flex items-center gap-2 pt-2">
                   <input
                     type="checkbox"
-                    id="isEngineActive"
+                    id="isEngineActiveCheck"
                     checked={isActive}
                     onChange={(e) => setIsActive(e.target.checked)}
-                    className="w-4 h-4 rounded text-amber-500 focus:ring-amber-400 bg-slate-950 border-slate-800"
+                    className="w-4 h-4 rounded text-amber-500 focus:ring-amber-400 bg-slate-900 border-white/[0.1]"
                   />
-                  <label htmlFor="isEngineActive" className="text-xs text-slate-300">
-                    Motor activo en servicio
+                  <label htmlFor="isEngineActiveCheck" className="text-xs font-mono text-slate-300">
+                    Motor disponible para asignación de órdenes
                   </label>
                 </div>
               )}
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
+              <div className="flex justify-end gap-3 pt-5 border-t border-white/[0.06]">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
+                  className="px-4 py-2 rounded-xl text-xs font-mono text-slate-400 hover:text-slate-200 hover:bg-white/[0.05] transition-colors"
                 >
-                  Cancelar
+                  CANCELAR
                 </button>
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold px-4 py-2 rounded-xl text-xs flex items-center gap-2 transition-colors disabled:opacity-50"
+                  className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs font-mono uppercase tracking-wider flex items-center gap-2 transition-all disabled:opacity-50"
                 >
                   {isSaving && (
                     <div className="w-3.5 h-3.5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></div>
                   )}
-                  <span>{modalMode === 'create' ? 'Registrar' : 'Guardar Cambios'}</span>
+                  <span>{modalMode === 'create' ? 'CREAR REGISTRO' : 'GUARDAR CAMBIOS'}</span>
                 </button>
               </div>
             </form>
@@ -421,4 +454,3 @@ export const EnginesPage: React.FC = () => {
     </div>
   );
 };
-

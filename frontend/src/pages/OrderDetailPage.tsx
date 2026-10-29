@@ -4,14 +4,17 @@ import {
   ArrowLeft, 
   Wrench, 
   Building2, 
-  Cog, 
+  Cpu, 
   Calendar, 
   User, 
   Clock, 
   CheckCircle2, 
-  AlertCircle,
+  AlertTriangle,
   FileText,
-  Activity
+  Activity,
+  Send,
+  Zap,
+  Check
 } from 'lucide-react';
 import { businessApi } from '../api/businessApi';
 import { RepairOrder, RepairStatus } from '../types';
@@ -65,7 +68,7 @@ export const OrderDetailPage: React.FC = () => {
       });
       setOrder(res.data);
       setStatusNotes('');
-      setSuccessMessage(`El estado se actualizó exitosamente a "${newStatus}"`);
+      setSuccessMessage(`Fase operativa actualizada exitosamente a "${newStatus}"`);
       setTimeout(() => setSuccessMessage(null), 4000);
     } catch (err: any) {
       const msg = err.response?.data?.detail || 'Error al actualizar el estado de la orden.';
@@ -88,20 +91,23 @@ export const OrderDetailPage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex h-96 items-center justify-center">
-        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-amber-500"></div>
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-2 border-amber-500/20 border-t-amber-500 rounded-full animate-spin"></div>
+          <span className="font-mono text-xs text-slate-400 tracking-wider">CARGANDO FICHA TÉCNICA...</span>
+        </div>
       </div>
     );
   }
 
   if (error || !order) {
     return (
-      <div className="space-y-4">
-        <Link to="/orders" className="inline-flex items-center gap-2 text-xs text-amber-400 hover:text-amber-300">
+      <div className="space-y-4 max-w-4xl mx-auto">
+        <Link to="/orders" className="inline-flex items-center gap-2 text-xs font-mono text-amber-400 hover:text-amber-300">
           <ArrowLeft className="w-4 h-4" />
-          <span>Volver al listado</span>
+          <span>Volver al listado de órdenes</span>
         </Link>
-        <div className="p-4 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-400 text-sm">
-          {error || 'Orden no encontrada.'}
+        <div className="p-4 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-rose-300 text-xs font-mono">
+          {error || 'Orden técnica no localizada.'}
         </div>
       </div>
     );
@@ -109,141 +115,193 @@ export const OrderDetailPage: React.FC = () => {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {/* Top Navigation & Status */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Link
-            to="/orders"
-            className="p-2 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl border border-slate-800 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-slate-100 font-mono tracking-wide">
-                {order.order_number}
-              </h1>
-              <StatusBadge status={order.status} />
+      {/* Top Header Card */}
+      <div className="glass-panel p-6 rounded-2xl">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <Link
+              to="/orders"
+              className="p-2.5 bg-slate-900/90 hover:bg-slate-800 text-slate-300 rounded-xl border border-white/[0.08] transition-all hover:scale-105 shrink-0"
+              title="Volver"
+            >
+              <ArrowLeft className="w-4 h-4" strokeWidth={2} />
+            </Link>
+            <div>
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className="text-2xl font-extrabold font-mono text-amber-400 tracking-wider">
+                  {order.order_number}
+                </span>
+                <StatusBadge status={order.status} />
+              </div>
+              <p className="text-xs font-mono text-slate-400 mt-1 flex items-center gap-2">
+                <span>Ingreso en taller:</span>
+                <span className="text-slate-300 font-semibold">{new Date(order.reception_date).toLocaleString()}</span>
+              </p>
             </div>
-            <p className="text-xs text-slate-400 mt-1">
-              Ingresado: {new Date(order.reception_date).toLocaleString()}
-            </p>
+          </div>
+
+          <div className="flex items-center gap-2 self-start md:self-auto font-mono text-xs bg-slate-900/70 border border-white/[0.06] px-3.5 py-2 rounded-xl">
+            <Clock className="w-4 h-4 text-amber-400" />
+            <span className="text-slate-400">FASE ACTIVA:</span>
+            <span className="text-slate-100 font-bold">{order.status}</span>
           </div>
         </div>
       </div>
 
       {successMessage && (
-        <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 text-xs flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 shrink-0" />
+        <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl text-emerald-300 text-xs font-mono flex items-center gap-2.5 shadow-[0_0_20px_rgba(52,211,153,0.1)]">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>{successMessage}</span>
         </div>
       )}
 
-      {/* Main Grid: Info + Status Transition Panel */}
+      {/* Grid: 2 Columns for Tech Specs & Timeline */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Left Column: Details */}
+        {/* Left Column: Tech Information */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Card: Client & Engine */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-2">
-              <Activity className="w-4 h-4 text-amber-500" />
-              <span>Entidades Asociadas</span>
+          
+          {/* Card: Linked Engine & Client */}
+          <div className="glass-panel p-6 rounded-2xl">
+            <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300 mb-4 flex items-center gap-2">
+              <Zap className="w-4 h-4 text-amber-400" />
+              <span>Matriz de Equipamiento & Propietario</span>
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Cliente */}
-              <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
-                <div className="flex items-center gap-2 text-slate-400 text-xs font-semibold mb-2">
-                  <Building2 className="w-4 h-4 text-amber-500" />
-                  <span>CLIENTE PROPIETARIO</span>
-                </div>
-                <h3 className="font-bold text-slate-100 text-sm">{order.client?.name}</h3>
-                <p className="text-xs text-amber-400/80 font-mono mt-0.5">
-                  {order.client?.id_type}: {order.client?.id_number}
-                </p>
-                <p className="text-xs text-slate-400 mt-2">{order.client?.email}</p>
-                {order.client?.phone && (
-                  <p className="text-xs text-slate-500">{order.client?.phone}</p>
-                )}
-              </div>
-
               {/* Motor */}
-              <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
-                <div className="flex items-center gap-2 text-slate-400 text-xs font-semibold mb-2">
-                  <Cog className="w-4 h-4 text-amber-500" />
-                  <span>MOTOR PESADO</span>
+              <div className="bg-[#090d16]/70 p-4 rounded-xl border border-white/[0.06] relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-28 h-28 bg-amber-500/[0.04] rounded-full blur-xl pointer-events-none" />
+                <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 mb-2">
+                  <div className="flex items-center gap-1.5 text-amber-400 font-bold">
+                    <Cpu className="w-4 h-4" />
+                    <span>MOTOR INDUSTRIAL</span>
+                  </div>
+                  <span className="text-[10px] bg-white/[0.05] px-1.5 py-0.5 rounded text-slate-300 font-mono">SERIE</span>
                 </div>
-                <h3 className="font-bold text-slate-100 text-sm font-mono text-amber-400">
+                <h3 className="font-mono text-lg font-bold text-slate-100 tracking-wide">
                   {order.engine?.serial_number}
                 </h3>
-                <p className="text-xs text-slate-200 mt-0.5">
-                  {order.engine?.manufacturer} - {order.engine?.model}
+                <p className="text-xs text-amber-400/90 font-semibold mt-0.5">
+                  {order.engine?.manufacturer} — {order.engine?.model}
                 </p>
-                <p className="text-xs text-slate-400 mt-2">{order.engine?.engine_type}</p>
-                <p className="text-xs text-slate-500 font-semibold">{order.engine?.power_capacity}</p>
+                <div className="mt-3 pt-3 border-t border-white/[0.06] grid grid-cols-2 gap-2 text-[11px] font-mono text-slate-400">
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">TIPO COMBUSTIÓN</span>
+                    <span className="text-slate-200">{order.engine?.engine_type}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">POTENCIA NOMINAL</span>
+                    <span className="text-amber-400 font-bold">{order.engine?.power_capacity}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Cliente */}
+              <div className="bg-[#090d16]/70 p-4 rounded-xl border border-white/[0.06]">
+                <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 mb-2">
+                  <div className="flex items-center gap-1.5 text-blue-400 font-bold">
+                    <Building2 className="w-4 h-4" />
+                    <span>EMPRESA PROPIETARIA</span>
+                  </div>
+                  <span className="text-[10px] bg-white/[0.05] px-1.5 py-0.5 rounded text-slate-300 font-mono">CLIENTE</span>
+                </div>
+                <h3 className="text-base font-bold text-slate-100">
+                  {order.client?.name}
+                </h3>
+                <p className="text-xs font-mono text-slate-400 mt-0.5">
+                  {order.client?.id_type}: {order.client?.id_number}
+                </p>
+                <div className="mt-3 pt-3 border-t border-white/[0.06] space-y-1 text-xs">
+                  <p className="text-slate-300 flex items-center gap-2">
+                    <span className="text-slate-400 font-mono text-[11px]">EMAIL:</span>
+                    <span>{order.client?.email}</span>
+                  </p>
+                  {order.client?.phone && (
+                    <p className="text-slate-400 flex items-center gap-2 font-mono text-xs">
+                      <span className="text-slate-400 text-[11px]">TEL:</span>
+                      <span>{order.client?.phone}</span>
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Card: Technical Information */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-              <FileText className="w-4 h-4 text-amber-500" />
-              <span>Informe y Diagnóstico Técnico</span>
+          {/* Card: Technical Diagnostic Sheet */}
+          <div className="glass-panel p-6 rounded-2xl space-y-5">
+            <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+              <FileText className="w-4 h-4 text-amber-400" />
+              <span>Informe de Diagnóstico y Plan de Intervención</span>
             </h2>
 
             <div>
-              <h4 className="text-xs font-semibold text-slate-300 mb-1">Problema Reportado por el Cliente:</h4>
-              <p className="text-xs text-slate-200 bg-slate-950/70 p-3.5 rounded-xl border border-slate-800/80 leading-relaxed">
+              <span className="text-[11px] font-mono uppercase text-slate-400 block mb-1.5">
+                Problema o Falla Notificada por el Operador
+              </span>
+              <div className="bg-[#090d16]/80 p-4 rounded-xl border border-white/[0.06] text-xs text-slate-200 leading-relaxed font-sans">
                 {order.problem_description}
-              </p>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <h4 className="text-xs font-semibold text-slate-300 mb-1">Diagnóstico Técnico:</h4>
-                <p className="text-xs text-slate-300 bg-slate-950/70 p-3 rounded-xl border border-slate-800/80 min-h-[60px]">
-                  {order.technical_diagnosis || 'Pendiente por diagnóstico en taller.'}
-                </p>
+                <span className="text-[11px] font-mono uppercase text-slate-400 block mb-1.5">
+                  Diagnóstico Técnico del Taller
+                </span>
+                <div className="bg-[#090d16]/80 p-3.5 rounded-xl border border-white/[0.06] text-xs text-slate-300 min-h-[75px] leading-relaxed">
+                  {order.technical_diagnosis || (
+                    <span className="italic text-slate-400 font-mono">Fase de diagnóstico en curso.</span>
+                  )}
+                </div>
               </div>
+
               <div>
-                <h4 className="text-xs font-semibold text-slate-300 mb-1">Trabajo Realizado / Requerido:</h4>
-                <p className="text-xs text-slate-300 bg-slate-950/70 p-3 rounded-xl border border-slate-800/80 min-h-[60px]">
-                  {order.work_performed || 'Sin intervenciones registradas hasta el momento.'}
-                </p>
+                <span className="text-[11px] font-mono uppercase text-slate-400 block mb-1.5">
+                  Trabajo Realizado / Componentes Reemplazados
+                </span>
+                <div className="bg-[#090d16]/80 p-3.5 rounded-xl border border-white/[0.06] text-xs text-slate-300 min-h-[75px] leading-relaxed">
+                  {order.work_performed || (
+                    <span className="italic text-slate-400 font-mono">Sin intervenciones registradas.</span>
+                  )}
+                </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 text-xs">
-              <div>
-                <span className="text-slate-500 block mb-0.5">Técnico Responsable:</span>
-                <span className="font-semibold text-slate-200">
-                  {order.assigned_technician || 'No asignado'}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-3 border-t border-white/[0.06] text-xs font-mono">
+              <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+                <span className="text-[10px] text-slate-400 uppercase block mb-1">Técnico a Cargo</span>
+                <span className="font-semibold text-slate-100 flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5 text-amber-400" />
+                  {order.assigned_technician || 'Sin asignar'}
                 </span>
               </div>
-              <div>
-                <span className="text-slate-500 block mb-0.5">Fecha Estimada Entrega:</span>
-                <span className="font-semibold text-slate-200">
+
+              <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+                <span className="text-[10px] text-slate-400 uppercase block mb-1">Entrega Estimada</span>
+                <span className="font-semibold text-slate-100">
                   {order.estimated_delivery_date
                     ? new Date(order.estimated_delivery_date).toLocaleDateString()
-                    : 'Sin estimar'}
+                    : 'Sin fecha programada'}
                 </span>
               </div>
-              <div>
-                <span className="text-slate-500 block mb-0.5">Fecha Real de Entrega:</span>
+
+              <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+                <span className="text-[10px] text-slate-400 uppercase block mb-1">Entrega Real en Planta</span>
                 <span className="font-semibold text-emerald-400">
                   {order.actual_delivery_date
                     ? new Date(order.actual_delivery_date).toLocaleDateString()
-                    : 'En proceso'}
+                    : 'En ciclo de reparación'}
                 </span>
               </div>
             </div>
 
             {order.observations && (
               <div className="pt-2">
-                <span className="text-slate-500 block text-xs mb-1">Observaciones:</span>
-                <p className="text-xs text-slate-400 italic bg-slate-950/40 p-2.5 rounded-lg border border-slate-800/60">
+                <span className="text-[11px] font-mono uppercase text-slate-400 block mb-1">
+                  Observaciones Generales
+                </span>
+                <p className="text-xs text-slate-400 bg-white/[0.02] p-3 rounded-xl border border-white/[0.04] italic">
                   "{order.observations}"
                 </p>
               </div>
@@ -251,111 +309,126 @@ export const OrderDetailPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Column: Update Status & Audit History */}
+        {/* Right Column: State Machine & Live Audit Trail */}
         <div className="space-y-6">
           
-          {/* Action Box: Update State */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-2">
-              <Clock className="w-4 h-4 text-amber-500" />
-              <span>Transición de Estado</span>
-            </h2>
+          {/* Action Box: Transition State Terminal */}
+          <div className="glass-panel p-6 rounded-2xl relative overflow-hidden">
+            <div className="flex items-center justify-between pb-3 mb-4 border-b border-white/[0.06]">
+              <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-200 flex items-center gap-2">
+                <Activity className="w-4 h-4 text-amber-400" />
+                <span>Transición de Fase</span>
+              </h2>
+              <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                AUDITORÍA ACTIVA
+              </span>
+            </div>
 
             {statusError && (
-              <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl flex items-start gap-2.5 text-rose-400 text-xs">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-300 text-xs font-mono flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400 mt-0.5" />
                 <span>{statusError}</span>
               </div>
             )}
 
-            <form onSubmit={handleUpdateStatus} className="space-y-3.5">
+            <form onSubmit={handleUpdateStatus} className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">
-                  Nuevo Estado del Proceso:
+                <label className="block text-[11px] font-mono uppercase text-slate-400 mb-1.5">
+                  Seleccionar Siguiente Estado
                 </label>
                 <select
                   value={newStatus}
                   onChange={(e) => setNewStatus(e.target.value as RepairStatus)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-amber-500"
+                  className="w-full bg-[#070a12]/90 border border-white/[0.1] rounded-xl px-3.5 py-2.5 text-xs font-mono text-slate-100 focus:outline-none focus:border-amber-500/70 focus:ring-2 focus:ring-amber-500/20"
                 >
                   {statuses.map((st) => (
                     <option key={st} value={st}>
-                      {st} {st === order.status ? '(Estado Actual)' : ''}
+                      {st} {st === order.status ? '— [ESTADO ACTUAL]' : ''}
                     </option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">
-                  Nota / Justificación del Cambio:
+                <label className="block text-[11px] font-mono uppercase text-slate-400 mb-1.5">
+                  Nota / Bitácora Técnica de Justificación
                 </label>
                 <textarea
                   rows={3}
-                  placeholder="Ej: Aprobación telefónica recibida por parte del cliente para reemplazo de pistones..."
+                  placeholder="Describa el motivo técnico o aprobación del cliente (ej: Pruebas hidrostáticas completadas satisfactoriamente)..."
                   value={statusNotes}
                   onChange={(e) => setStatusNotes(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-500"
-                ></textarea>
+                  className="w-full bg-[#070a12]/90 border border-white/[0.1] rounded-xl px-3.5 py-2 text-xs font-sans text-slate-100 focus:outline-none focus:border-amber-500/70 focus:ring-2 focus:ring-amber-500/20"
+                />
               </div>
 
               <button
                 type="submit"
                 disabled={isUpdatingStatus || newStatus === order.status}
-                className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-colors disabled:opacity-40"
+                className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold py-2.5 px-4 rounded-xl text-xs font-mono uppercase tracking-wider flex items-center justify-center gap-2 transition-all duration-200 active:scale-95 disabled:opacity-40 shadow-[0_0_20px_rgba(245,158,11,0.2)]"
               >
                 {isUpdatingStatus ? (
                   <>
                     <div className="w-3.5 h-3.5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></div>
-                    <span>Actualizando...</span>
+                    <span>REGISTRANDO EN BLOCKCHAIN/DB...</span>
                   </>
                 ) : (
-                  <span>Registrar Cambio de Estado</span>
+                  <>
+                    <Send className="w-3.5 h-3.5" />
+                    <span>REGISTRAR CAMBIO DE ESTADO</span>
+                  </>
                 )}
               </button>
             </form>
           </div>
 
-          {/* Timeline: History */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-amber-500" />
-              <span>Historial de Auditoría</span>
-            </h2>
+          {/* Audit Timeline */}
+          <div className="glass-panel p-6 rounded-2xl shadow-xl">
+            <div className="flex items-center justify-between pb-3 mb-4 border-b border-white/[0.06]">
+              <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-200 flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-amber-400" />
+                <span>Trazabilidad & Auditoría</span>
+              </h2>
+              <span className="text-[10px] font-mono text-slate-400">
+                {order.status_history?.length || 0} EVENTOS
+              </span>
+            </div>
 
             <div className="space-y-4">
               {!order.status_history || order.status_history.length === 0 ? (
-                <p className="text-xs text-slate-500 text-center py-4">Sin historial registrado.</p>
+                <p className="text-xs text-slate-400 font-mono text-center py-6">
+                  Sin eventos cronológicos registrados.
+                </p>
               ) : (
-                <div className="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-800">
+                <div className="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-white/[0.08]">
                   {order.status_history.map((h, idx) => (
-                    <div key={h.id} className="relative">
-                      {/* Circle Dot */}
+                    <div key={h.id} className="relative group">
+                      {/* Node indicator */}
                       <div
-                        className={`absolute -left-6 top-1 w-2.5 h-2.5 rounded-full border-2 ${
+                        className={`absolute -left-6 top-1.5 w-2.5 h-2.5 rounded-full border-2 transition-all ${
                           idx === 0
-                            ? 'bg-amber-500 border-amber-400 ring-4 ring-amber-500/20'
-                            : 'bg-slate-800 border-slate-700'
+                            ? 'bg-amber-400 border-amber-300 ring-4 ring-amber-500/20'
+                            : 'bg-slate-800 border-slate-600'
                         }`}
-                      ></div>
+                      />
                       <div>
-                        <div className="flex items-center gap-2">
-                          <StatusBadge status={h.new_status} />
-                          <span className="text-[10px] text-slate-500">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <StatusBadge status={h.new_status} size="sm" />
+                          <span className="text-[10px] font-mono text-slate-400">
                             {new Date(h.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>
-                        <p className="text-[11px] text-slate-400 mt-1">
-                          Por: <span className="text-slate-200 font-medium">{h.changed_by_user_name || 'Sistema'}</span>
+                        <p className="text-[11px] font-mono text-slate-400 mt-1">
+                          Operador: <span className="text-slate-200 font-semibold">{h.changed_by_user_name || 'Sistema'}</span>
                         </p>
                         {h.notes && (
-                          <p className="text-xs text-slate-300 mt-1 bg-slate-950/60 p-2 rounded-lg border border-slate-800/60">
+                          <p className="text-xs text-slate-300 mt-1.5 bg-[#070a12]/80 p-2.5 rounded-lg border border-white/[0.06] font-sans">
                             "{h.notes}"
                           </p>
                         )}
-                        <p className="text-[10px] text-slate-500 mt-1">
+                        <span className="text-[10px] font-mono text-slate-400 mt-1 block">
                           {new Date(h.created_at).toLocaleDateString()}
-                        </p>
+                        </span>
                       </div>
                     </div>
                   ))}
@@ -370,4 +443,3 @@ export const OrderDetailPage: React.FC = () => {
     </div>
   );
 };
-
