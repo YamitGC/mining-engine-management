@@ -3,12 +3,15 @@ import { ShieldCheck, Plus, CheckCircle2, XCircle, AlertCircle, User as UserIcon
 import { authApi } from '../api/authApi';
 import { User, UserRole } from '../types';
 import { useAuth } from '../context/AuthContext';
+import { Pagination } from '../components/Pagination';
 
 export const UsersPage: React.FC = () => {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -36,6 +39,11 @@ export const UsersPage: React.FC = () => {
   useEffect(() => {
     fetchUsers();
   }, []);
+
+  const paginatedUsers = users.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   const handleToggleStatus = async (user: User) => {
     if (user.id === currentUser?.id) {
@@ -154,7 +162,7 @@ export const UsersPage: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                users.map((u) => (
+                paginatedUsers.map((u) => (
                   <tr key={u.id} className="hover:bg-slate-800/40 transition-colors">
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-2.5">
@@ -215,6 +223,12 @@ export const UsersPage: React.FC = () => {
             </tbody>
           </table>
         </div>
+        <Pagination
+          currentPage={currentPage}
+          totalItems={users.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+        />
       </div>
 
       {/* Modal Crear Usuario */}

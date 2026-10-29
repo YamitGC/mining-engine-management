@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Cog, Plus, Search, Filter, AlertCircle, CheckCircle2, XCircle, Building2 } from 'lucide-react';
 import { businessApi } from '../api/businessApi';
 import { Engine, Client } from '../types';
+import { Pagination } from '../components/Pagination';
 
 export const EnginesPage: React.FC = () => {
   const [engines, setEngines] = useState<Engine[]>([]);
@@ -10,6 +11,8 @@ export const EnginesPage: React.FC = () => {
   const [selectedClientFilter, setSelectedClientFilter] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -42,6 +45,7 @@ export const EnginesPage: React.FC = () => {
 
       setEngines(enginesRes.data || []);
       setClients(clientsRes.data || []);
+      setCurrentPage(1);
     } catch (err: any) {
       console.error(err);
       setError('Error al cargar la información de motores o clientes.');
@@ -56,6 +60,11 @@ export const EnginesPage: React.FC = () => {
     }, 300);
     return () => clearTimeout(timer);
   }, [search, selectedClientFilter]);
+
+  const paginatedEngines = engines.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   const openCreateModal = () => {
     setModalMode('create');
@@ -212,7 +221,7 @@ export const EnginesPage: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                engines.map((e) => (
+                paginatedEngines.map((e) => (
                   <tr key={e.id} className="hover:bg-slate-800/40 transition-colors">
                     <td className="py-4 px-6 font-mono font-bold text-amber-400">
                       <div className="flex items-center gap-2">
@@ -261,6 +270,12 @@ export const EnginesPage: React.FC = () => {
             </tbody>
           </table>
         </div>
+        <Pagination
+          currentPage={currentPage}
+          totalItems={engines.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+        />
       </div>
 
       {/* Modal Crear / Editar */}

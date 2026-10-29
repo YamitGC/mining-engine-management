@@ -15,6 +15,7 @@ import {
 import { businessApi } from '../api/businessApi';
 import { RepairOrder, Client, Engine, RepairStatus } from '../types';
 import { StatusBadge } from '../components/StatusBadge';
+import { Pagination } from '../components/Pagination';
 
 export const RepairOrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<RepairOrder[]>([]);
@@ -27,6 +28,8 @@ export const RepairOrdersPage: React.FC = () => {
   const [selectedClient, setSelectedClient] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -65,6 +68,7 @@ export const RepairOrdersPage: React.FC = () => {
       setOrders(ordersRes.data || []);
       setClients(clientsRes.data || []);
       setEngines(enginesRes.data || []);
+      setCurrentPage(1);
     } catch (err: any) {
       console.error(err);
       setError('Error al consultar las órdenes de reparación.');
@@ -79,6 +83,11 @@ export const RepairOrdersPage: React.FC = () => {
     }, 300);
     return () => clearTimeout(timer);
   }, [search, selectedStatus, selectedClient]);
+
+  const paginatedOrders = orders.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   const openCreateModal = () => {
     const autoNumber = `ORD-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -247,7 +256,7 @@ export const RepairOrdersPage: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                orders.map((o) => (
+                paginatedOrders.map((o) => (
                   <tr key={o.id} className="hover:bg-slate-800/40 transition-colors">
                     <td className="py-4 px-6 font-mono font-bold text-amber-400 text-sm">
                       {o.order_number}
@@ -290,6 +299,12 @@ export const RepairOrdersPage: React.FC = () => {
             </tbody>
           </table>
         </div>
+        <Pagination
+          currentPage={currentPage}
+          totalItems={orders.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+        />
       </div>
 
       {/* Modal Crear Orden */}

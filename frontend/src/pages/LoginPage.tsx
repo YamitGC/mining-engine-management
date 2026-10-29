@@ -27,13 +27,6 @@ export const LoginPage: React.FC = () => {
     }
   };
 
-  const handleFillDemo = (role: 'admin' | 'operator') => {
-    if (role === 'admin') {
-      setEmail('admin@mining.com');
-      setPassword('admin123');
-    }
-  };
-
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center p-4">
       {/* Background Glow */}
@@ -121,20 +114,6 @@ export const LoginPage: React.FC = () => {
               )}
             </button>
           </form>
-
-          {/* Quick Demo Credentials */}
-          <div className="mt-6 pt-6 border-t border-slate-800">
-            <p className="text-xs text-slate-400 font-medium mb-2">Credenciales de Acceso Rápido:</p>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => handleFillDemo('admin')}
-                className="flex-1 py-1.5 px-3 bg-slate-800/80 hover:bg-slate-800 text-slate-300 text-xs rounded-lg border border-slate-700/60 transition-colors text-left"
-              >
-                <span className="font-semibold text-amber-400">Admin:</span> admin@mining.com
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </div>

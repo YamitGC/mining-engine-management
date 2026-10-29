@@ -2,12 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { Users, Plus, Search, Mail, Phone, FileText, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 import { businessApi } from '../api/businessApi';
 import { Client } from '../types';
+import { Pagination } from '../components/Pagination';
 
 export const ClientsPage: React.FC = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -30,6 +33,7 @@ export const ClientsPage: React.FC = () => {
       setError(null);
       const res = await businessApi.get(`/clients${search ? `?search=${encodeURIComponent(search)}` : ''}`);
       setClients(res.data || []);
+      setCurrentPage(1);
     } catch (err: any) {
       console.error(err);
       setError('Error al consultar el listado de clientes.');
@@ -44,6 +48,12 @@ export const ClientsPage: React.FC = () => {
     }, 300);
     return () => clearTimeout(timer);
   }, [search]);
+
+  // Paginación en cliente
+  const paginatedClients = clients.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   const openCreateModal = () => {
     setModalMode('create');
@@ -180,7 +190,7 @@ export const ClientsPage: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                clients.map((c) => (
+                paginatedClients.map((c) => (
                   <tr key={c.id} className="hover:bg-slate-800/40 transition-colors">
                     <td className="py-4 px-6 font-mono font-medium text-amber-400">
                       <span className="text-[10px] text-slate-500 mr-1.5">{c.id_type}</span>
@@ -230,6 +240,12 @@ export const ClientsPage: React.FC = () => {
             </tbody>
           </table>
         </div>
+        <Pagination
+          currentPage={currentPage}
+          totalItems={clients.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+        />
       </div>
 
       {/* Modal Crear / Editar */}
@@ -303,13 +319,17 @@ export const ClientsPage: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Teléfono</label>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    Teléfono (Solo Números)
+                  </label>
                   <input
-                    type="text"
-                    placeholder="+57 300 123 4567"
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={15}
+                    placeholder="3001234567"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-500"
+                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-500 font-mono"
                   />
                 </div>
               </div>
