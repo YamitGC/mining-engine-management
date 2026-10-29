@@ -2,7 +2,7 @@ services:
   postgres:
     image: postgres:16-alpine
     container_name: mining_postgres
-    restart: always
+    restart: "no"
     environment:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: secretpassword
@@ -25,7 +25,7 @@ services:
       context: ./auth-service
       dockerfile: Dockerfile
     container_name: mining_auth_service
-    restart: always
+    restart: "no"
     environment:
       AUTH_PORT: 4000
       NODE_ENV: production
@@ -46,7 +46,7 @@ services:
       context: ./business-service
       dockerfile: Dockerfile
     container_name: mining_business_service
-    restart: always
+    restart: "no"
     environment:
       BUSINESS_PORT: 8000
       JWT_SECRET: super_secret_jwt_key_min_32_characters_long_12345
@@ -65,7 +65,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: mining_frontend
-    restart: always
+    restart: "no"
     ports:
       - "5173:80"
     depends_on:
