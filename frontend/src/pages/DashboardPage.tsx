@@ -1,231 +1,426 @@
-import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useState, useMemo } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   Wrench, 
-  Clock, 
-  CheckCircle2, 
-  AlertTriangle, 
-  Users, 
-  Cog, 
-  ArrowRight,
-  TrendingUp,
-  Inbox
+  Search, 
+  ChevronRight, 
+  Filter,
+  ArrowUpDown
 } from 'lucide-react';
 import { businessApi } from '../api/businessApi';
 import { RepairOrder, RepairStatus } from '../types';
 import { StatusBadge } from '../components/StatusBadge';
+import { KpiStat } from '../components/KpiStat';
+import { AttentionList, AttentionItem } from '../components/AttentionList';
+import { StageColumn } from '../components/StageColumn';
+import { EmptyState } from '../components/EmptyState';
 
 export const DashboardPage: React.FC = () => {
-  const [stats, setStats] = useState<Record<string, number>>({});
-  const [recentOrders, setRecentOrders] = useState<RepairOrder[]>([]);
+  const [orders, setOrders] = useState<RepairOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Table filter state
+  const [tableSearch, setTableSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
+  const navigate = useNavigate();
+
   useEffect(() => {
-    const fetchDashboardData = async () => {
+    const fetchOrders = async () => {
       try {
         setIsLoading(true);
-        const [statsRes, ordersRes] = await Promise.all([
-          businessApi.get('/repair-orders/summary/stats'),
-          businessApi.get('/repair-orders?limit=5')
-        ]);
-        setStats(statsRes.data || {});
-        setRecentOrders(ordersRes.data || []);
+        setError(null);
+        // Fetch orders - single source of truth for all dashboard widgets
+        const res = await businessApi.get('/repair-orders');
+        setOrders(res.data || []);
       } catch (err: any) {
-        console.error('Error fetching dashboard:', err);
-        setError('No se pudo cargar la información del Dashboard.');
+        console.error('Error fetching dashboard orders:', err);
+        setError('No se pudo cargar la información del taller. Verifica la conexión con el servidor.');
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchDashboardData();
+    fetchOrders();
   }, []);
 
-  const totalOrders = Object.values(stats).reduce((acc, curr) => acc + curr, 0);
-  const activeOrders = (stats['Recibido'] || 0) + 
-                       (stats['En diagnóstico'] || 0) + 
-                       (stats['Esperando aprobación'] || 0) + 
-                       (stats['En reparación'] || 0) + 
-                       (stats['En pruebas'] || 0);
-  const deliveredOrders = (stats['Finalizado'] || 0) + (stats['Entregado'] || 0);
+  // 1. Calculate Single Source of Truth Metrics
+  const activeOrders = useMemo(() => {
+    return orders.filter((o) => o.status !== 'Finalizado' && o.status !== 'Entregado');
+  }, [orders]);
 
-  const statusCards: { label: RepairStatus; count: number; color: string; icon: any }[] = [
-    { label: 'Recibido', count: stats['Recibido'] || 0, color: 'border-blue-500/40 text-blue-400 bg-blue-500/10', icon: Inbox },
-    { label: 'En diagnóstico', count: stats['En diagnóstico'] || 0, color: 'border-purple-500/40 text-purple-400 bg-purple-500/10', icon: Clock },
-    { label: 'Esperando aprobación', count: stats['Esperando aprobación'] || 0, color: 'border-amber-500/40 text-amber-400 bg-amber-500/10', icon: AlertTriangle },
-    { label: 'En reparación', count: stats['En reparación'] || 0, color: 'border-orange-500/40 text-orange-400 bg-orange-500/10', icon: Wrench },
-    { label: 'En pruebas', count: stats['En pruebas'] || 0, color: 'border-cyan-500/40 text-cyan-400 bg-cyan-500/10', icon: TrendingUp },
-    { label: 'Finalizado', count: stats['Finalizado'] || 0, color: 'border-emerald-500/40 text-emerald-400 bg-emerald-500/10', icon: CheckCircle2 },
-  ];
+  const readyForDelivery = useMemo(() => {
+    return orders.filter((o) => o.status === 'Finalizado');
+  }, [orders]);
+
+  const overdueOrders = useMemo(() => {
+    const now = new Date();
+    return orders.filter((o) => {
+      if (o.status === 'Finalizado' || o.status === 'Entregado') return false;
+      if (!o.estimated_delivery_date) return false;
+      return new Date(o.estimated_delivery_date) < now;
+    });
+  }, [orders]);
+
+  const averageDaysInShop = useMemo(() => {
+    if (orders.length === 0) return 0;
+    const totalDays = orders.reduce((sum, o) => {
+      const start = o.reception_date ? new Date(o.reception_date) : new Date(o.created_at);
+      const end = o.actual_delivery_date ? new Date(o.actual_delivery_date) : new Date();
+      const diff = Math.max(0, Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+      return sum + diff;
+    }, 0);
+    return Math.round(totalDays / orders.length);
+  }, [orders]);
+
+  // 2. Build Attention List (prioritized action items)
+  const attentionItems = useMemo<AttentionItem[]>(() => {
+    const list: AttentionItem[] = [];
+    const now = new Date();
+
+    orders.forEach((o) => {
+      if (o.status === 'Finalizado' || o.status === 'Entregado') return;
+
+      const reception = o.reception_date ? new Date(o.reception_date) : new Date(o.created_at);
+      const daysInShop = Math.max(0, Math.floor((now.getTime() - reception.getTime()) / (1000 * 60 * 60 * 24)));
+
+      // Overdue
+      if (o.estimated_delivery_date && new Date(o.estimated_delivery_date) < now) {
+        const overdueDays = Math.max(1, Math.floor((now.getTime() - new Date(o.estimated_delivery_date).getTime()) / (1000 * 60 * 60 * 24)));
+        list.push({
+          id: o.id,
+          orderNumber: o.order_number,
+          engineSerial: o.engine?.serial_number || `Motor #${o.engine_id}`,
+          engineModel: o.engine?.model,
+          clientName: o.client?.name || 'Cliente sin nombre',
+          reason: 'Fecha estimada de entrega vencida',
+          urgency: 'high',
+          daysOverdue: overdueDays,
+        });
+        return;
+      }
+
+      // Waiting approval
+      if (o.status === 'Esperando aprobación') {
+        list.push({
+          id: o.id,
+          orderNumber: o.order_number,
+          engineSerial: o.engine?.serial_number || `Motor #${o.engine_id}`,
+          engineModel: o.engine?.model,
+          clientName: o.client?.name || 'Cliente sin nombre',
+          reason: 'Esperando aprobación de cotización por el cliente',
+          urgency: 'medium',
+        });
+        return;
+      }
+
+      // Diagnostic taking > 3 days
+      if (o.status === 'En diagnóstico' && daysInShop > 3) {
+        list.push({
+          id: o.id,
+          orderNumber: o.order_number,
+          engineSerial: o.engine?.serial_number || `Motor #${o.engine_id}`,
+          engineModel: o.engine?.model,
+          clientName: o.client?.name || 'Cliente sin nombre',
+          reason: `Diagnóstico prolongado (${daysInShop} días en análisis)`,
+          urgency: 'medium',
+        });
+        return;
+      }
+
+      // No assigned technician
+      if (!o.assigned_technician) {
+        list.push({
+          id: o.id,
+          orderNumber: o.order_number,
+          engineSerial: o.engine?.serial_number || `Motor #${o.engine_id}`,
+          engineModel: o.engine?.model,
+          clientName: o.client?.name || 'Cliente sin nombre',
+          reason: 'Sin técnico responsable asignado',
+          urgency: 'low',
+        });
+      }
+    });
+
+    return list;
+  }, [orders]);
+
+  // 3. Stage board distribution
+  const stagesData = useMemo(() => {
+    const pipelineStatuses: RepairStatus[] = [
+      'Recibido',
+      'En diagnóstico',
+      'Esperando aprobación',
+      'En reparación',
+      'En pruebas',
+      'Finalizado',
+    ];
+
+    return pipelineStatuses.map((st) => ({
+      status: st,
+      orders: orders.filter((o) => o.status === st),
+    }));
+  }, [orders]);
+
+  // 4. Filtered table data
+  const filteredOrders = useMemo(() => {
+    return orders.filter((o) => {
+      const matchSearch =
+        o.order_number.toLowerCase().includes(tableSearch.toLowerCase()) ||
+        (o.engine?.serial_number && o.engine.serial_number.toLowerCase().includes(tableSearch.toLowerCase())) ||
+        (o.client?.name && o.client.name.toLowerCase().includes(tableSearch.toLowerCase())) ||
+        (o.assigned_technician && o.assigned_technician.toLowerCase().includes(tableSearch.toLowerCase()));
+
+      const matchStatus = statusFilter === 'all' || o.status === statusFilter;
+      return matchSearch && matchStatus;
+    });
+  }, [orders, tableSearch, statusFilter]);
+
+  const paginatedOrders = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredOrders.slice(start, start + itemsPerPage);
+  }, [filteredOrders, currentPage]);
+
+  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage) || 1;
 
   if (isLoading) {
     return (
-      <div className="flex h-96 items-center justify-center">
-        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-amber-500"></div>
+      <div className="space-y-6 max-w-7xl mx-auto animate-pulse">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-24 bg-[#131B2E] rounded-lg border border-white/[0.04]" />
+          ))}
+        </div>
+        <div className="h-44 bg-[#131B2E] rounded-lg border border-white/[0.04]" />
+        <div className="h-56 bg-[#131B2E] rounded-lg border border-white/[0.04]" />
       </div>
     );
   }
 
+  if (error) {
+    return (
+      <div className="max-w-2xl mx-auto mt-12">
+        <EmptyState
+          title="Error al cargar el dashboard"
+          description={error}
+          actionText="Reintentar"
+          onAction={() => window.location.reload()}
+        />
+      </div>
+    );
+  }
+
+  const kpiItems = [
+    {
+      id: 'active',
+      label: 'Motores en taller',
+      value: activeOrders.length,
+      unit: 'unidades',
+      comparison: {
+        text: `${orders.length} órdenes históricas`,
+        type: 'neutral' as const,
+      },
+    },
+    {
+      id: 'overdue',
+      label: 'Con retraso',
+      value: overdueOrders.length,
+      unit: 'órdenes',
+      comparison: {
+        text: overdueOrders.length > 0 ? 'Requieren reprogramación' : 'Al día con cronograma',
+        type: overdueOrders.length > 0 ? ('negative' as const) : ('positive' as const),
+      },
+    },
+    {
+      id: 'ready',
+      label: 'Listos para despacho',
+      value: readyForDelivery.length,
+      unit: 'completados',
+      comparison: {
+        text: readyForDelivery.length > 0 ? 'Pendientes de entrega a faena' : 'Ninguno pendiente',
+        type: readyForDelivery.length > 0 ? ('positive' as const) : ('neutral' as const),
+      },
+    },
+    {
+      id: 'avg_days',
+      label: 'Tiempo promedio en taller',
+      value: averageDaysInShop,
+      unit: 'días',
+      comparison: {
+        text: averageDaysInShop > 15 ? 'Por encima del objetivo (15 d)' : 'Dentro de meta técnica',
+        type: averageDaysInShop > 15 ? ('warning' as const) : ('positive' as const),
+      },
+    },
+  ];
+
   return (
-    <div className="space-y-8">
-      {/* Title */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-100">Tablero de Control</h1>
-          <p className="text-sm text-slate-400 mt-1">
-            Monitoreo en tiempo real del taller de reparación de motores mineros.
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <Link
-            to="/orders"
-            className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold px-4 py-2 rounded-xl text-sm transition-colors"
-          >
-            <Wrench className="w-4 h-4" />
-            <span>Gestionar Órdenes</span>
-          </Link>
-        </div>
-      </div>
+    <div className="space-y-6 max-w-7xl mx-auto">
+      {/* 1. Compact KPI Row */}
+      <KpiStat items={kpiItems} />
 
-      {error && (
-        <div className="p-4 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-400 text-sm">
-          {error}
-        </div>
-      )}
+      {/* 2. Attention List */}
+      <AttentionList items={attentionItems} />
 
-      {/* Top High-level KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl flex items-center justify-between">
+      {/* 3. Process Pipeline with real engine cards */}
+      <StageColumn stages={stagesData} />
+
+      {/* 4. Active Engines & Orders Table */}
+      <div className="bg-[#131B2E] border border-white/[0.08] rounded-lg overflow-hidden">
+        {/* Table header with filters */}
+        <div className="p-4 border-b border-white/[0.06] flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div>
-            <p className="text-xs uppercase font-semibold text-slate-400 tracking-wider">Total Histórico</p>
-            <h3 className="text-3xl font-bold text-slate-100 mt-2">{totalOrders}</h3>
-            <p className="text-xs text-slate-500 mt-1">Órdenes registradas</p>
+            <h2 className="text-sm font-semibold text-slate-100">Órdenes de trabajo activas</h2>
+            <p className="text-xs text-slate-400">Listado general de motores en taller con seguimiento de plazos</p>
           </div>
-          <div className="p-3 bg-slate-800 rounded-xl text-amber-500">
-            <Wrench className="w-6 h-6" />
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+              <input
+                type="text"
+                placeholder="Filtrar por serie, cliente o técnico..."
+                value={tableSearch}
+                onChange={(e) => {
+                  setTableSearch(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="bg-[#0F1626] border border-white/[0.08] focus:border-amber-500 rounded-md pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 outline-none w-56"
+              />
+            </div>
+
+            <select
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="bg-[#0F1626] border border-white/[0.08] rounded-md px-2.5 py-1.5 text-xs text-slate-200 outline-none"
+            >
+              <option value="all">Todas las etapas</option>
+              <option value="Recibido">Recibido</option>
+              <option value="En diagnóstico">En diagnóstico</option>
+              <option value="Esperando aprobación">Esperando aprobación</option>
+              <option value="En reparación">En reparación</option>
+              <option value="En pruebas">En pruebas</option>
+              <option value="Finalizado">Finalizado</option>
+              <option value="Entregado">Entregado</option>
+            </select>
           </div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl flex items-center justify-between">
-          <div>
-            <p className="text-xs uppercase font-semibold text-slate-400 tracking-wider">En Operación Activa</p>
-            <h3 className="text-3xl font-bold text-amber-400 mt-2">{activeOrders}</h3>
-            <p className="text-xs text-slate-500 mt-1">Motores actualmente en taller</p>
-          </div>
-          <div className="p-3 bg-amber-500/10 rounded-xl text-amber-500">
-            <Clock className="w-6 h-6" />
-          </div>
-        </div>
-
-        <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl flex items-center justify-between">
-          <div>
-            <p className="text-xs uppercase font-semibold text-slate-400 tracking-wider">Completados / Entregados</p>
-            <h3 className="text-3xl font-bold text-emerald-400 mt-2">{deliveredOrders}</h3>
-            <p className="text-xs text-slate-500 mt-1">Reparaciones con éxito</p>
-          </div>
-          <div className="p-3 bg-emerald-500/10 rounded-xl text-emerald-500">
-            <CheckCircle2 className="w-6 h-6" />
-          </div>
-        </div>
-      </div>
-
-      {/* Breakdown by Status Grid */}
-      <div>
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-4">
-          Resumen por Estado del Proceso
-        </h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {statusCards.map((sc) => {
-            const Icon = sc.icon;
-            return (
-              <div
-                key={sc.label}
-                className="bg-slate-900 border border-slate-800/80 p-4 rounded-xl flex flex-col justify-between hover:border-slate-700 transition-colors"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div className={`p-2 rounded-lg border ${sc.color}`}>
-                    <Icon className="w-4 h-4" />
-                  </div>
-                  <span className="text-2xl font-bold text-slate-100">{sc.count}</span>
-                </div>
-                <p className="text-xs font-medium text-slate-300 leading-snug">{sc.label}</p>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Recent Orders Table */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
-        <div className="p-6 border-b border-slate-800 flex items-center justify-between">
-          <div>
-            <h2 className="text-base font-semibold text-slate-100">Órdenes Recientes</h2>
-            <p className="text-xs text-slate-400 mt-0.5">Últimos motores que ingresaron o cambiaron de estado</p>
-          </div>
-          <Link
-            to="/orders"
-            className="text-xs font-medium text-amber-400 hover:text-amber-300 flex items-center gap-1.5 transition-colors"
-          >
-            <span>Ver todas las órdenes</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-
+        {/* Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-950/60 text-slate-400 uppercase font-semibold border-b border-slate-800">
+            <thead className="bg-[#0F1626] text-slate-400 font-medium border-b border-white/[0.06]">
               <tr>
-                <th className="py-3.5 px-6">Orden</th>
-                <th className="py-3.5 px-6">Cliente</th>
-                <th className="py-3.5 px-6">Motor</th>
-                <th className="py-3.5 px-6">Técnico</th>
-                <th className="py-3.5 px-6">Estado</th>
-                <th className="py-3.5 px-6 text-right">Acción</th>
+                <th className="py-3 px-4">Orden</th>
+                <th className="py-3 px-4">Serie motor</th>
+                <th className="py-3 px-4">Cliente</th>
+                <th className="py-3 px-4">Etapa</th>
+                <th className="py-3 px-4">Técnico</th>
+                <th className="py-3 px-4">Días en taller</th>
+                <th className="py-3 px-4">Entrega estimada</th>
+                <th className="py-3 px-4 text-right">Acción</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800 text-slate-300">
-              {recentOrders.length === 0 ? (
+            <tbody className="divide-y divide-white/[0.04] text-slate-300">
+              {paginatedOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-8 text-slate-500">
-                    No hay órdenes de reparación registradas aún.
+                  <td colSpan={8} className="py-8 text-center text-slate-400">
+                    No se encontraron órdenes con los filtros seleccionados.
                   </td>
                 </tr>
               ) : (
-                recentOrders.map((order) => (
-                  <tr key={order.id} className="hover:bg-slate-800/40 transition-colors">
-                    <td className="py-3.5 px-6 font-semibold text-slate-100">
-                      {order.order_number}
-                    </td>
-                    <td className="py-3.5 px-6 text-slate-300">
-                      {order.client?.name || `Cliente #${order.client_id}`}
-                    </td>
-                    <td className="py-3.5 px-6">
-                      <div className="flex items-center gap-1.5">
-                        <Cog className="w-3.5 h-3.5 text-amber-500" />
-                        <span>{order.engine?.serial_number || `Motor #${order.engine_id}`}</span>
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-6 text-slate-400">
-                      {order.assigned_technician || 'Sin asignar'}
-                    </td>
-                    <td className="py-3.5 px-6">
-                      <StatusBadge status={order.status} />
-                    </td>
-                    <td className="py-3.5 px-6 text-right">
-                      <Link
-                        to={`/orders/${order.id}`}
-                        className="text-xs text-amber-400 hover:text-amber-300 font-medium"
-                      >
-                        Ver Detalle →
-                      </Link>
-                    </td>
-                  </tr>
-                ))
+                paginatedOrders.map((order) => {
+                  const reception = order.reception_date ? new Date(order.reception_date) : new Date(order.created_at);
+                  const daysInShop = Math.max(0, Math.floor((Date.now() - reception.getTime()) / (1000 * 60 * 60 * 24)));
+                  const isOverdue = order.estimated_delivery_date
+                    ? new Date(order.estimated_delivery_date) < new Date() && order.status !== 'Finalizado' && order.status !== 'Entregado'
+                    : false;
+
+                  return (
+                    <tr
+                      key={order.id}
+                      onClick={() => navigate(`/orders/${order.id}`)}
+                      className="hover:bg-slate-800/40 cursor-pointer transition-colors"
+                    >
+                      <td className="py-3 px-4 font-mono font-medium text-slate-200">
+                        {order.order_number}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="font-mono font-medium text-slate-100 block">
+                          {order.engine?.serial_number || `ID ${order.engine_id}`}
+                        </span>
+                        <span className="text-[11px] text-slate-400">
+                          {order.engine?.manufacturer} {order.engine?.model}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-slate-200 font-medium truncate max-w-[160px]">
+                        {order.client?.name || 'Cliente'}
+                      </td>
+                      <td className="py-3 px-4">
+                        <StatusBadge status={order.status} size="sm" />
+                      </td>
+                      <td className="py-3 px-4 text-slate-300">
+                        {order.assigned_technician || <span className="text-slate-500 italic">Sin asignar</span>}
+                      </td>
+                      <td className="py-3 px-4 font-mono">
+                        <span className="text-slate-200">{daysInShop} d</span>
+                      </td>
+                      <td className="py-3 px-4 font-mono">
+                        {order.estimated_delivery_date ? (
+                          <span className={isOverdue ? 'text-rose-300 font-medium' : 'text-slate-300'}>
+                            {new Date(order.estimated_delivery_date).toLocaleDateString()}
+                            {isOverdue && ' (Vencido)'}
+                          </span>
+                        ) : (
+                          <span className="text-slate-500">Sin definir</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <span className="inline-flex items-center text-amber-400 hover:text-amber-300 font-medium gap-1 text-xs">
+                          <span>Detalle</span>
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
+
+        {/* Table pagination */}
+        {filteredOrders.length > itemsPerPage && (
+          <div className="p-3 border-t border-white/[0.06] flex items-center justify-between text-xs text-slate-400">
+            <span>
+              Mostrando {Math.min((currentPage - 1) * itemsPerPage + 1, filteredOrders.length)} -{' '}
+              {Math.min(currentPage * itemsPerPage, filteredOrders.length)} de {filteredOrders.length} órdenes
+            </span>
+            <div className="flex items-center gap-1.5">
+              <button
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                className="px-2.5 py-1 rounded border border-white/[0.08] hover:bg-slate-800 disabled:opacity-40 transition-colors"
+              >
+                Anterior
+              </button>
+              <span className="px-2 font-mono text-slate-200">
+                {currentPage} / {totalPages}
+              </span>
+              <button
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                className="px-2.5 py-1 rounded border border-white/[0.08] hover:bg-slate-800 disabled:opacity-40 transition-colors"
+              >
+                Siguiente
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

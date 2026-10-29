@@ -7,7 +7,12 @@ class ClientBase(BaseModel):
     id_type: str = Field(..., min_length=2, max_length=20, description="Tipo de documento (NIT, CC, RUT, etc.)")
     id_number: str = Field(..., min_length=3, max_length=50, description="Número de identificación único")
     email: EmailStr = Field(..., description="Correo electrónico de contacto")
-    phone: Optional[str] = Field(None, max_length=30, description="Teléfono de contacto")
+    phone: Optional[str] = Field(
+        None, 
+        max_length=30, 
+        pattern=r"^[0-9+\s\-]{7,20}$", 
+        description="Teléfono de contacto (solo dígitos numéricos, espacios o prefijo +)"
+    )
 
 class ClientCreate(ClientBase):
     pass
@@ -17,7 +22,7 @@ class ClientUpdate(BaseModel):
     id_type: Optional[str] = Field(None, min_length=2, max_length=20)
     id_number: Optional[str] = Field(None, min_length=3, max_length=50)
     email: Optional[EmailStr] = None
-    phone: Optional[str] = Field(None, max_length=30)
+    phone: Optional[str] = Field(None, max_length=30, pattern=r"^[0-9+\s\-]{7,20}$")
     is_active: Optional[bool] = None
 
 class ClientResponse(ClientBase):

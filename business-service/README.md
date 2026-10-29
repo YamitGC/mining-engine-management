@@ -8,9 +8,10 @@ Servicio central de lógica de negocio para la plataforma de **Gestión de Repar
 
 Este servicio opera de forma **100% independiente** del servicio de autenticación:
 - No almacena contraseñas ni cuenta con base de datos de usuarios.
-- Gestiona el catálogo de **Clientes** y **Motores pesados** (Caterpillar, Cummins, Komatsu, etc.).
+- Gestiona el catálogo de **Clientes** y **Motores pesados** (Caterpillar, Cummins, Komatsu, Detroit Diesel, Hitachi, Liebherr, etc.).
 - Gestiona el **Ciclo de Vida de las Órdenes de Reparación** y audita su **Historial de Estados**.
 - Valida matemáticamente los tokens JWT emitidos por Express usando la clave compartida (`JWT_SECRET`) sin consultar la base de datos de Auth.
+- Implementa reglas de integridad de negocio avanzadas (validación de unicidad de seriales y NITs, pertenencia de motor a cliente y rangos de fecha de entrega).
 
 ```
        [ Cliente HTTP / Frontend / React ]
@@ -61,7 +62,7 @@ Este servicio opera de forma **100% independiente** del servicio de autenticaci�
 
 ## 2. Ciclo de Vida de una Orden de Reparación
 
-Cada orden transita por los 7 estados mínimos normativos requeridos:
+Cada orden transita por los 7 estados normativos auditados:
 
 ```
   ┌────────────┐     ┌────────────────┐     ┌──────────────────────┐
@@ -144,7 +145,7 @@ Cada vez que una orden cambia de estado:
 
 ## 4. Endpoints de la API REST
 
-Documentación interactiva disponible en: `http://localhost:8000/docs` (Swagger UI) y `http://localhost:8000/redoc`.
+Documentación interactiva disponible en tiempo de ejecución en: `http://localhost:8000/docs` (Swagger UI) y `http://localhost:8000/redoc`.
 
 ### 4.1. Clientes (`/api/clients`)
 - `POST /api/clients`: Registrar cliente (valida unicidad de `id_number`).
@@ -153,39 +154,52 @@ Documentación interactiva disponible en: `http://localhost:8000/docs` (Swagger 
 - `PUT /api/clients/{id}`: Actualizar cliente.
 
 ### 4.2. Motores (`/api/engines`)
-- `POST /api/engines`: Registrar motor (valida cliente y unicidad de `serial_number`).
+- `POST /api/engines`: Registrar motor (valida cliente y unicidad de `serial_number`; permite marcas estándar o personalizadas).
 - `GET /api/engines`: Listar motores (con filtro por cliente o texto).
 - `GET /api/engines/{id}`: Detalle de motor con información del cliente propietario.
-- `PUT /api/engines/{id}`: Actualizar motor.
+- `PUT /api/engines/{id}`: Actualizar especificaciones del motor.
 
 ### 4.3. Órdenes de Reparación (`/api/repair-orders`)
 - `GET /api/repair-orders/summary/stats`: Conteo de órdenes por estado para el Dashboard.
-- `POST /api/repair-orders`: Crear orden (valida que el motor pertenezca al cliente y unicidad de `order_number`).
+- `POST /api/repair-orders`: Crear orden (valida pertenencia de motor al cliente, unicidad de `order_number` y rango de `estimated_delivery_date` entre hoy y el año 2100).
 - `GET /api/repair-orders`: Listar órdenes con filtros (`status`, `client_id`, `engine_id`, `search`).
 - `GET /api/repair-orders/{id}`: Detalle completo con cliente, motor e historial cronológico de estados.
 - `PATCH /api/repair-orders/{id}/status`: Actualizar estado y registrar auditoría.
 
 ---
 
-## 5. Pruebas Automatizadas
+## 5. Reglas de Validación de Esquemas (Pydantic)
 
-La suite cuenta con 8 pruebas de integración desarrolladas con **`pytest`** y una base de datos SQLite en memoria (aisladas de la red y sin dependencias externas):
+1. **Fecha estimada de entrega (`estimated_delivery_date`)**:
+   - No puede ser anterior al día en curso.
+   - No puede superar el año `2100` (`2100-12-31`).
+   - Respuestas de validación automática con código HTTP `422 Unprocessable Entity`.
+2. **Asociación Motor - Cliente**:
+   - Una orden de trabajo solo puede crearse si el motor seleccionado pertenece formalmente al cliente indicado.
+3. **Unicidad de Identificadores**:
+   - Códigos de orden (`order_number`), seriales de motor (`serial_number`) y documentos tributarios (`id_number`) están protegidos contra colisiones (código HTTP `409 Conflict`).
+
+---
+
+## 6. Pruebas Automatizadas
+
+La suite cuenta con **9 pruebas de integración** desarrolladas con **`pytest`** y una base de datos SQLite en memoria (aisladas de la red y sin dependencias externas):
 
 ```bash
 cd business-service
-./.venv/bin/pytest tests/
+./.venv/bin/pytest tests/ -v
 ```
 
 Resultado:
 ```text
-tests/test_clients_engines.py ...... [ 75%]
-tests/test_repair_orders.py ..       [100%]
-========================= 8 passed in 0.38s =========================
+tests/test_clients_engines.py ......   [ 66%]
+tests/test_repair_orders.py ...        [100%]
+========================= 9 passed in 0.42s =========================
 ```
 
 ---
 
-## 6. Variables de Entorno
+## 7. Variables de Entorno
 
 ```env
 BUSINESS_PORT=8000
@@ -193,4 +207,3 @@ JWT_SECRET=super_secret_jwt_key_min_32_characters_long_12345
 JWT_ALGORITHM=HS256
 BUSINESS_DATABASE_URL=postgresql://admin:secretpassword@localhost:5433/business_db
 ```
-

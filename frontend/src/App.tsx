@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { PublicRoute } from './components/PublicRoute';
 import { Layout } from './components/Layout';
 
 import { LoginPage } from './pages/LoginPage';
@@ -17,10 +18,18 @@ export const App: React.FC = () => {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          {/* Ruta Pública: Login */}
-          <Route path="/login" element={<LoginPage />} />
+          {/* Ruta Pública: Login (si ya está autenticado, redirige a /dashboard) */}
+          <Route
+            path="/login"
+            element={
+              <PublicRoute>
+                <LoginPage />
+              </PublicRoute>
+            }
+          />
+          <Route path="/register" element={<Navigate to="/login" replace />} />
 
-          {/* Rutas Protegidas dentro de Layout */}
+          {/* Rutas Protegidas dentro de Layout (si no está autenticado, redirige a /login) */}
           <Route
             element={
               <ProtectedRoute>

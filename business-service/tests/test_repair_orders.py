@@ -103,3 +103,57 @@ def test_prevent_duplicate_order_number(client, auth_headers):
     dup_res = client.post("/api/repair-orders", json=order_payload, headers=auth_headers)
     assert dup_res.status_code == 409
     assert "Ya existe una orden de reparación" in dup_res.json()["detail"]
+
+def test_validate_estimated_delivery_date_range(client, auth_headers):
+    # 1. Setup client y engine
+    c_res = client.post("/api/clients", json={
+        "name": "Minera Fecha Test",
+        "id_type": "NIT",
+        "id_number": "888777666-5",
+        "email": "fechas@minera.com"
+    }, headers=auth_headers)
+    c_id = c_res.json()["id"]
+
+    e_res = client.post("/api/engines", json={
+        "serial_number": "ENG-DATE-001",
+        "manufacturer": "Caterpillar",
+        "model": "3516B",
+        "engine_type": "Diesel",
+        "power_capacity": "2500 HP",
+        "client_id": c_id
+    }, headers=auth_headers)
+    e_id = e_res.json()["id"]
+
+    # 2. Fecha anterior al día de hoy debe ser rechazada (422)
+    past_order = {
+        "order_number": "ORD-PAST-001",
+        "engine_id": e_id,
+        "client_id": c_id,
+        "problem_description": "Prueba de fecha pasada",
+        "estimated_delivery_date": "2020-01-01T00:00:00Z"
+    }
+    past_res = client.post("/api/repair-orders", json=past_order, headers=auth_headers)
+    assert past_res.status_code == 422
+
+    # 3. Fecha superior al año 2100 debe ser rechazada (422)
+    future_order = {
+        "order_number": "ORD-FAR-FUTURE-001",
+        "engine_id": e_id,
+        "client_id": c_id,
+        "problem_description": "Prueba de fecha año 2105",
+        "estimated_delivery_date": "2105-01-01T00:00:00Z"
+    }
+    future_res = client.post("/api/repair-orders", json=future_order, headers=auth_headers)
+    assert future_res.status_code == 422
+
+    # 4. Fecha válida (año 2030) debe ser aceptada (201)
+    valid_order = {
+        "order_number": "ORD-VALID-DATE-001",
+        "engine_id": e_id,
+        "client_id": c_id,
+        "problem_description": "Prueba de fecha válida",
+        "estimated_delivery_date": "2030-06-15T12:00:00Z"
+    }
+    valid_res = client.post("/api/repair-orders", json=valid_order, headers=auth_headers)
+    assert valid_res.status_code == 201
+    assert valid_res.json()["estimated_delivery_date"] is not None
