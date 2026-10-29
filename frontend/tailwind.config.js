@@ -12,30 +12,35 @@ export default {
         mono: ['"JetBrains Mono"', 'monospace'],
       },
       colors: {
-        canvas: '#070a12',
-        surface: {
-          50: '#1b2234',
-          100: '#151c2c',
-          200: '#101524',
-          300: '#0b0f19',
-          400: '#070a12',
-        },
+        canvas: '#0B0F17',
         mining: {
-          gold: '#f59e0b',
-          amber: '#d97706',
-          bright: '#fbbf24',
-          glow: 'rgba(245, 158, 11, 0.15)',
+          dark: '#0B0F17',
+          surface: '#121722',
+          card: '#161E2C',
+          hover: '#1D273A',
+          border: 'rgba(245, 158, 11, 0.15)',
+          gold: '#F59E0B',
+          yellow: '#EAB308',
+          bright: '#FDE047',
+          amber: '#D97706',
+          orange: '#EA580C',
+          rust: '#C2410C',
+          slate: '#334155',
+          steel: '#475569',
         }
       },
       backgroundImage: {
-        'radial-grid': 'radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px)',
-        'mesh-glow': 'radial-gradient(circle at 50% 0%, rgba(245, 158, 11, 0.08) 0%, transparent 60%)',
+        'hazard-pattern': 'repeating-linear-gradient(45deg, rgba(245, 158, 11, 0.15) 0, rgba(245, 158, 11, 0.15) 10px, transparent 10px, transparent 20px)',
+        'hazard-strong': 'repeating-linear-gradient(45deg, #F59E0B 0, #F59E0B 12px, #0B0F17 12px, #0B0F17 24px)',
+        'steel-plate': 'radial-gradient(rgba(255, 255, 255, 0.08) 1.5px, transparent 1.5px)',
       },
       boxShadow: {
-        'inner-light': 'inset 0 1px 0 0 rgba(255, 255, 255, 0.07)',
-        'bento-card': '0 0 0 1px rgba(255, 255, 255, 0.06), 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5)',
+        'gold-glow': '0 0 25px -3px rgba(245, 158, 11, 0.25)',
+        'orange-glow': '0 0 25px -3px rgba(234, 88, 12, 0.25)',
+        'industrial-card': '0 4px 20px -2px rgba(0, 0, 0, 0.6), inset 0 1px 0 0 rgba(255, 255, 255, 0.08)',
       }
     },
   },
   plugins: [],
 }
+

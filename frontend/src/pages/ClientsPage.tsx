@@ -1,5 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { Users, Plus, Search, Mail, Phone, Building2, CheckCircle2, XCircle, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { 
+  Building2, 
+  Plus, 
+  Search, 
+  Mail, 
+  Phone, 
+  AlertTriangle, 
+  CheckCircle2, 
+  XCircle, 
+  X,
+  Mountain,
+  Pickaxe
+} from 'lucide-react';
 import { businessApi } from '../api/businessApi';
 import { Client } from '../types';
 import { Pagination } from '../components/Pagination';
@@ -31,12 +43,13 @@ export const ClientsPage: React.FC = () => {
     try {
       setIsLoading(true);
       setError(null);
-      const res = await businessApi.get(`/clients${search ? `?search=${encodeURIComponent(search)}` : ''}`);
+      const url = search ? `/clients?search=${encodeURIComponent(search)}` : '/clients';
+      const res = await businessApi.get(url);
       setClients(res.data || []);
       setCurrentPage(1);
     } catch (err: any) {
       console.error(err);
-      setError('Error al consultar el catálogo de empresas mineras.');
+      setError('Error al consultar el directorio de clientes en el microservicio de negocio.');
     } finally {
       setIsLoading(false);
     }
@@ -117,45 +130,46 @@ export const ClientsPage: React.FC = () => {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-white/[0.06]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-amber-500/20">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="px-2 py-0.5 rounded bg-blue-500/10 border border-blue-500/30 text-blue-400 text-[10px] font-mono uppercase tracking-widest font-bold">
-              Directorio Corporativo
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="px-2.5 py-0.5 rounded bg-amber-400 text-slate-950 text-[10px] font-mono uppercase tracking-widest font-black flex items-center gap-1 shadow-sm">
+              <Mountain className="w-3.5 h-3.5" />
+              <span>YACIMIENTOS & FAENAS</span>
             </span>
-            <span className="text-xs text-slate-400 font-mono">{clients.length} empresas registradas</span>
+            <span className="text-xs text-amber-300 font-mono font-bold">{clients.length} empresas mineras</span>
           </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-slate-100 tracking-tight font-sans">
-            Clientes & Empresas Mineras
+          <h1 className="text-2xl md:text-3xl font-black text-slate-100 tracking-tight font-sans">
+            Compañías Mineras & Contratistas
           </h1>
-          <p className="text-xs text-slate-400 mt-1 font-sans">
-            Control de contratistas, consorcios y titulares de maquinaria pesada.
+          <p className="text-xs text-slate-300 mt-1 font-sans">
+            Directorio de titulares mineros, concesiones de tajo abierto y consorcios de maquinaria pesada.
           </p>
         </div>
 
         <button
           onClick={openCreateModal}
-          className="group inline-flex items-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold px-4 py-2.5 rounded-xl text-xs font-mono tracking-wide shadow-[0_0_20px_rgba(245,158,11,0.25)] transition-all duration-200 active:scale-95 self-start sm:self-auto"
+          className="group inline-flex items-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black px-4 py-2.5 rounded-xl text-xs font-mono tracking-wider shadow-[0_0_20px_rgba(245,158,11,0.3)] transition-all duration-200 active:scale-95 self-start sm:self-auto border border-amber-300"
         >
-          <Plus className="w-4 h-4" strokeWidth={2} />
-          <span>REGISTRAR CLIENTE</span>
+          <Plus className="w-4 h-4" strokeWidth={2.5} />
+          <span>REGISTRAR EMPRESA MINERA</span>
         </button>
       </div>
 
       {/* Search Input Bar */}
-      <div className="glass-panel p-3.5 rounded-2xl flex items-center gap-3">
-        <Search className="w-4 h-4 text-slate-500 shrink-0 ml-1" />
+      <div className="mining-panel p-3.5 rounded-2xl flex items-center gap-3">
+        <Search className="w-4 h-4 text-amber-500 shrink-0 ml-1" />
         <input
           type="text"
-          placeholder="Filtrar por razón social, número de identificación tributaria (NIT) o correo..."
+          placeholder="Filtrar por razón social, número de identificación tributaria (NIT) o correo de faena..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="bg-transparent border-none text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none w-full font-mono"
+          className="bg-transparent border-none text-xs text-slate-100 placeholder-slate-500 focus:outline-none w-full font-mono"
         />
         {search && (
           <button
             onClick={() => setSearch('')}
-            className="text-[11px] font-mono text-amber-400 hover:text-amber-300 px-2 py-1 bg-amber-500/10 rounded-lg border border-amber-500/20"
+            className="text-[10px] font-mono text-amber-400 hover:text-amber-300 px-2 py-1 bg-amber-500/10 rounded-lg border border-amber-500/25"
           >
             LIMPIAR
           </button>
@@ -163,22 +177,22 @@ export const ClientsPage: React.FC = () => {
       </div>
 
       {error && (
-        <div className="p-4 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-rose-300 text-xs font-mono flex items-center gap-2">
+        <div className="p-4 bg-rose-500/15 border border-rose-500/40 rounded-2xl text-rose-300 text-xs font-mono flex items-center gap-2">
           <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
       {/* Clients Table */}
-      <div className="glass-panel rounded-2xl overflow-hidden shadow-2xl">
+      <div className="mining-panel rounded-2xl overflow-hidden shadow-2xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-[#090d16]/80 text-slate-300 font-mono uppercase text-[11px] font-semibold border-b border-white/[0.06]">
+            <thead className="bg-[#0B1019] text-amber-400/90 font-mono uppercase text-[11px] font-black border-b border-white/[0.08]">
               <tr>
-                <th className="py-4 px-6">Identificación Fiscal</th>
-                <th className="py-4 px-6">Razón Social / Titular</th>
-                <th className="py-4 px-6">Líneas de Contacto</th>
-                <th className="py-4 px-6">Estado</th>
+                <th className="py-4 px-6">Identificación Fiscal (NIT)</th>
+                <th className="py-4 px-6">Compañía Minera / Titular</th>
+                <th className="py-4 px-6">Líneas de Contacto & Faena</th>
+                <th className="py-4 px-6">Estado Contrato</th>
                 <th className="py-4 px-6 text-right">Gestión</th>
               </tr>
             </thead>
@@ -188,7 +202,7 @@ export const ClientsPage: React.FC = () => {
                   <td colSpan={5} className="py-16 text-center text-slate-400 font-mono">
                     <div className="flex justify-center items-center gap-2.5">
                       <div className="w-4 h-4 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin"></div>
-                      <span>CONSULTANDO BASE DE DATOS...</span>
+                      <span>CONSULTANDO DIRECTORIO MINERO...</span>
                     </div>
                   </td>
                 </tr>
@@ -200,53 +214,60 @@ export const ClientsPage: React.FC = () => {
                 </tr>
               ) : (
                 paginatedClients.map((c) => (
-                  <tr key={c.id} className="hover:bg-white/[0.02] transition-colors group">
-                    <td className="py-4 px-6 font-mono font-bold text-amber-400">
-                      <span className="text-[10px] text-slate-400 mr-1.5">{c.id_type}</span>
-                      <span>{c.id_number}</span>
+                  <tr key={c.id} className="hover:bg-white/[0.03] transition-colors group">
+                    <td className="py-4 px-6 font-mono">
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#182232] border border-amber-500/30 text-amber-400 font-black text-xs">
+                        <span>{c.id_type}:</span>
+                        <span>{c.id_number}</span>
+                      </div>
+                      <p className="text-[10px] text-slate-400 font-mono mt-1">ID Contrato: #{c.id}</p>
                     </td>
+
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 font-bold text-xs">
-                          {c.name.charAt(0).toUpperCase()}
+                        <div className="p-2 rounded-lg bg-[#182234] border border-amber-500/30 text-amber-400">
+                          <Mountain className="w-4 h-4" />
                         </div>
                         <div>
-                          <p className="font-semibold text-slate-100">{c.name}</p>
-                          <p className="text-[10px] font-mono text-slate-400">REGISTRO #{c.id}</p>
+                          <p className="font-bold text-slate-100 text-sm tracking-tight">{c.name}</p>
+                          <p className="text-[11px] font-mono text-slate-400">Concesión / Tajo Minero</p>
                         </div>
                       </div>
                     </td>
-                    <td className="py-4 px-6">
-                      <div className="space-y-1 font-mono text-[11px]">
-                        <div className="flex items-center gap-1.5 text-slate-300">
-                          <Mail className="w-3.5 h-3.5 text-slate-500" />
+
+                    <td className="py-4 px-6 font-mono text-[11px]">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-slate-200">
+                          <Mail className="w-3.5 h-3.5 text-amber-500" />
                           <span>{c.email}</span>
                         </div>
                         {c.phone && (
-                          <div className="flex items-center gap-1.5 text-slate-400">
-                            <Phone className="w-3.5 h-3.5 text-slate-500" />
+                          <div className="flex items-center gap-2 text-amber-400 font-bold">
+                            <Phone className="w-3.5 h-3.5 text-amber-500" />
                             <span>{c.phone}</span>
                           </div>
                         )}
                       </div>
                     </td>
+
                     <td className="py-4 px-6">
                       {c.is_active ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]"></span>
-                          Activo
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono font-black uppercase tracking-wider bg-emerald-500/15 text-emerald-300 border border-emerald-500/40">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse"></span>
+                          VIGENTE
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-rose-500/10 text-rose-300 border border-rose-500/30">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono font-black uppercase tracking-wider bg-rose-500/15 text-rose-300 border border-rose-500/40">
                           <span className="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
-                          Inactivo
+                          SUSPENDIDO
                         </span>
                       )}
                     </td>
+
                     <td className="py-4 px-6 text-right">
                       <button
                         onClick={() => openEditModal(c)}
-                        className="text-xs font-mono font-semibold text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 px-3 py-1.5 rounded-lg border border-amber-500/25 transition-all"
+                        className="text-xs font-mono font-bold text-slate-950 bg-amber-400 hover:bg-amber-300 px-3 py-1.5 rounded-lg transition-all shadow-sm active:scale-95"
                       >
                         EDITAR
                       </button>
@@ -268,133 +289,145 @@ export const ClientsPage: React.FC = () => {
 
       {/* Modal Crear / Editar */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-[#070a12]/85 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="glass-panel rounded-2xl w-full max-w-lg p-6 md:p-8 shadow-2xl relative border border-white/[0.1]">
-            <div className="flex items-center justify-between pb-3 mb-4 border-b border-white/[0.06]">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#0E1522] rounded-2xl w-full max-w-lg p-6 md:p-8 shadow-2xl relative border border-amber-500/30">
+            <div className="flex items-center justify-between pb-3 mb-4 border-b border-white/[0.08]">
               <div>
-                <h3 className="text-base font-mono font-bold text-slate-100 uppercase tracking-wide">
-                  {modalMode === 'create' ? 'Alta de Empresa Minera' : 'Actualización de Datos'}
+                <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono text-[10px] font-black uppercase">
+                  {modalMode === 'create' ? 'ALTA DE CONCESIÓN' : 'MODIFICAR EMPRESA'}
+                </span>
+                <h3 className="text-lg font-black text-slate-100 font-sans mt-1">
+                  {modalMode === 'create' ? 'Registrar Compañía Minera' : 'Actualizar Datos de Empresa'}
                 </h3>
-                <p className="text-[11px] font-mono text-slate-400 mt-0.5">
-                  Validación de unicidad fiscal por número de identificación
-                </p>
               </div>
-              <Building2 className="w-5 h-5 text-amber-400" />
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="w-8 h-8 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-slate-400 hover:text-slate-100 flex items-center justify-center"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
             {formError && (
-              <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl flex items-start gap-2.5 text-rose-300 text-xs font-mono">
+              <div className="mb-4 p-3 bg-rose-500/15 border border-rose-500/40 rounded-xl flex items-start gap-2.5 text-rose-300 text-xs font-mono">
                 <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400 mt-0.5" />
                 <span>{formError}</span>
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-[11px] font-mono uppercase text-slate-300 mb-1.5 font-bold">
+                  Razón Social / Titular Minero *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ej: Minera Cerrejón S.A."
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full bg-[#080D15] border border-white/[0.1] rounded-xl px-3.5 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-amber-500 font-sans"
+                />
+              </div>
+
               <div className="grid grid-cols-3 gap-3">
-                <div className="col-span-1">
-                  <label className="block text-[11px] font-mono uppercase text-slate-400 mb-1">Tipo</label>
+                <div>
+                  <label className="block text-[11px] font-mono uppercase text-slate-300 mb-1.5 font-bold">
+                    Tipo Doc *
+                  </label>
                   <select
                     value={idType}
                     onChange={(e) => setIdType(e.target.value)}
-                    className="w-full bg-[#070a12] border border-white/[0.1] rounded-xl px-3 py-2 text-xs font-mono text-slate-100 focus:outline-none focus:border-amber-500"
+                    className="w-full bg-[#080D15] border border-white/[0.1] rounded-xl px-3.5 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-amber-500 font-mono"
                   >
                     <option value="NIT">NIT</option>
-                    <option value="CC">Cédula (CC)</option>
                     <option value="RUT">RUT</option>
-                    <option value="PASAPORTE">Pasaporte</option>
+                    <option value="RUC">RUC</option>
+                    <option value="CC">CC</option>
                   </select>
                 </div>
                 <div className="col-span-2">
-                  <label className="block text-[11px] font-mono uppercase text-slate-400 mb-1">
-                    Número de Documento *
+                  <label className="block text-[11px] font-mono uppercase text-slate-300 mb-1.5 font-bold">
+                    Número de Identificación *
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder="900123456-1"
+                    placeholder="900.123.456-7"
                     value={idNumber}
                     onChange={(e) => setIdNumber(e.target.value)}
-                    className="w-full bg-[#070a12] border border-white/[0.1] rounded-xl px-3 py-2 text-xs font-mono text-slate-100 focus:outline-none focus:border-amber-500"
+                    className="w-full bg-[#080D15] border border-white/[0.1] rounded-xl px-3.5 py-2.5 text-xs text-amber-400 focus:outline-none focus:border-amber-500 font-mono font-bold"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[11px] font-mono uppercase text-slate-400 mb-1">
-                  Razón Social / Nombre Comercial *
+                <label className="block text-[11px] font-mono uppercase text-slate-300 mb-1.5 font-bold">
+                  Correo Electrónico de Enlace *
                 </label>
                 <input
-                  type="text"
+                  type="email"
                   required
-                  placeholder="Minera San Jorge S.A.S"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-[#070a12] border border-white/[0.1] rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-500"
+                  placeholder="operaciones@mineracerrejon.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full bg-[#080D15] border border-white/[0.1] rounded-xl px-3.5 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-amber-500 font-mono"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-mono uppercase text-slate-400 mb-1">
-                    Correo Electrónico *
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    placeholder="operaciones@minera.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-[#070a12] border border-white/[0.1] rounded-xl px-3 py-2 text-xs font-mono text-slate-100 focus:outline-none focus:border-amber-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-mono uppercase text-slate-400 mb-1">
-                    Teléfono (Solo Dígitos)
-                  </label>
-                  <input
-                    type="tel"
-                    inputMode="numeric"
-                    maxLength={15}
-                    placeholder="3001234567"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-                    className="w-full bg-[#070a12] border border-white/[0.1] rounded-xl px-3 py-2 text-xs font-mono text-slate-100 focus:outline-none focus:border-amber-500"
-                  />
-                </div>
+              <div>
+                <label className="block text-[11px] font-mono uppercase text-slate-300 mb-1.5 font-bold">
+                  Línea Telefónica de Taller (Solo dígitos)
+                </label>
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  placeholder="3001234567"
+                  value={phone}
+                  onChange={(e) => {
+                    const onlyNums = e.target.value.replace(/\D/g, '');
+                    setPhone(onlyNums);
+                  }}
+                  className="w-full bg-[#080D15] border border-white/[0.1] rounded-xl px-3.5 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-amber-500 font-mono"
+                />
+                <span className="text-[10px] text-slate-400 font-mono mt-1 block">
+                  * Solo dígitos numéricos permitidos (sin caracteres especiales).
+                </span>
               </div>
 
               {modalMode === 'edit' && (
-                <div className="flex items-center gap-2 pt-2">
-                  <input
-                    type="checkbox"
-                    id="isActiveClient"
-                    checked={isActive}
-                    onChange={(e) => setIsActive(e.target.checked)}
-                    className="w-4 h-4 rounded text-amber-500 focus:ring-amber-400 bg-slate-900 border-white/[0.1]"
-                  />
-                  <label htmlFor="isActiveClient" className="text-xs font-mono text-slate-300">
-                    Empresa autorizada en servicio activo
+                <div className="pt-2">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isActive}
+                      onChange={(e) => setIsActive(e.target.checked)}
+                      className="w-4 h-4 rounded text-amber-500 bg-[#080D15] border-white/20 focus:ring-0"
+                    />
+                    <span className="text-xs font-mono text-slate-200">
+                      Empresa con contrato de mantenimiento activo
+                    </span>
                   </label>
                 </div>
               )}
 
-              <div className="flex justify-end gap-3 pt-5 border-t border-white/[0.06]">
+              <div className="flex justify-end gap-3 pt-4 border-t border-white/[0.08]">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-mono text-slate-400 hover:text-slate-200 hover:bg-white/[0.05] transition-colors"
+                  className="px-4 py-2.5 rounded-xl text-xs font-mono font-bold text-slate-400 hover:text-slate-100 hover:bg-white/[0.05]"
                 >
                   CANCELAR
                 </button>
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs font-mono uppercase tracking-wider flex items-center gap-2 transition-all disabled:opacity-50"
+                  className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black px-5 py-2.5 rounded-xl text-xs font-mono tracking-wider flex items-center gap-2 shadow-[0_0_20px_rgba(245,158,11,0.3)] transition-all disabled:opacity-50"
                 >
                   {isSaving && (
                     <div className="w-3.5 h-3.5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></div>
                   )}
-                  <span>{modalMode === 'create' ? 'CREAR REGISTRO' : 'GUARDAR CAMBIOS'}</span>
+                  <span>{modalMode === 'create' ? 'REGISTRAR EMPRESA' : 'GUARDAR CAMBIOS'}</span>
                 </button>
               </div>
             </form>
