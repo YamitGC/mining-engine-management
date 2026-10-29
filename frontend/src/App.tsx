@@ -17,8 +17,9 @@ export const App: React.FC = () => {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          {/* Ruta Pública: Login */}
-          <Route path="/login" element={<LoginPage />} />
+          {/* Ruta Pública: Login & Register */}
+          <Route path="/login" element={<LoginPage initialMode="login" />} />
+          <Route path="/register" element={<LoginPage initialMode="register" />} />
 
           {/* Rutas Protegidas dentro de Layout */}
           <Route

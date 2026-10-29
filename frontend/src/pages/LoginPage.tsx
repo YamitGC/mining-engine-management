@@ -1,15 +1,47 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Pickaxe, Lock, Mail, AlertTriangle, ArrowRight, HardHat, Shield } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { 
+  Pickaxe, 
+  Lock, 
+  Mail, 
+  AlertTriangle, 
+  ArrowRight, 
+  HardHat, 
+  Shield, 
+  User, 
+  UserPlus, 
+  LogIn 
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-export const LoginPage: React.FC = () => {
+interface LoginPageProps {
+  initialMode?: 'login' | 'register';
+}
+
+export const LoginPage: React.FC<LoginPageProps> = ({ initialMode = 'login' }) => {
+  const location = useLocation();
+  const [mode, setMode] = useState<'login' | 'register'>(
+    location.pathname === '/register' || initialMode === 'register' ? 'register' : 'login'
+  );
+
+  // Form State
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState<'OPERATOR' | 'ADMIN'>('OPERATOR');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+
+  const { login, register } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (location.pathname === '/register') {
+      setMode('register');
+    } else if (location.pathname === '/login') {
+      setMode('login');
+    }
+  }, [location.pathname]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -17,14 +49,27 @@ export const LoginPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      await login(email.trim(), password);
+      if (mode === 'login') {
+        await login(email.trim(), password);
+      } else {
+        await register(name.trim(), email.trim(), password, role);
+      }
       navigate('/dashboard');
     } catch (err: any) {
-      const msg = err.response?.data?.message || 'Acceso denegado: Credenciales de turno no válidas.';
+      const msg = 
+        err.response?.data?.message || 
+        (mode === 'login' 
+          ? 'Acceso denegado: Credenciales de turno no válidas.' 
+          : 'Error al registrar el operador en el servicio de autenticación.');
       setError(msg);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const switchMode = (newMode: 'login' | 'register') => {
+    setError(null);
+    setMode(newMode);
   };
 
   return (
@@ -35,8 +80,8 @@ export const LoginPage: React.FC = () => {
 
       <div className="w-full max-w-md relative z-10">
         {/* Brand Industrial Badge */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#141C2B] border border-amber-500/30 text-[11px] font-mono text-amber-300 mb-4 shadow-sm">
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#141C2B] border border-amber-500/30 text-[11px] font-mono text-amber-300 mb-4 shadow-sm">
             <span className="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)] animate-pulse" />
             <span className="font-bold tracking-widest uppercase">PORTAL OPERATIVO DE TALLER MINERO</span>
           </div>
@@ -56,34 +101,84 @@ export const LoginPage: React.FC = () => {
         </div>
 
         {/* Auth Box */}
-        <div className="mining-panel p-8 rounded-2xl shadow-2xl relative border border-amber-500/30 overflow-hidden">
+        <div className="mining-panel p-6 sm:p-8 rounded-2xl shadow-2xl relative border border-amber-500/30 overflow-hidden">
           {/* Top Hazard Warning Stripe */}
           <div className="absolute top-0 left-0 right-0 h-1.5 hazard-ribbon"></div>
 
-          <div className="flex items-center justify-between pb-4 mb-6 border-b border-amber-500/20 pt-1">
+          {/* Mode Switcher Tabs */}
+          <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-[#080D15] border border-white/[0.08] mb-6 pt-1">
+            <button
+              type="button"
+              onClick={() => switchMode('login')}
+              className={`flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-mono font-bold transition-all ${
+                mode === 'login'
+                  ? 'bg-amber-400 text-slate-950 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>INICIAR TURNO</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => switchMode('register')}
+              className={`flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-mono font-bold transition-all ${
+                mode === 'register'
+                  ? 'bg-amber-400 text-slate-950 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              <span>REGISTRARSE</span>
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between pb-3 mb-5 border-b border-amber-500/20">
             <div>
               <h3 className="text-sm font-mono font-black uppercase tracking-wider text-slate-100 flex items-center gap-1.5">
                 <HardHat className="w-4 h-4 text-amber-400" />
-                <span>Ingreso de Turno</span>
+                <span>{mode === 'login' ? 'Identificación de Operador' : 'Alta de Nuevo Operador'}</span>
               </h3>
               <p className="text-[11px] text-slate-400 font-mono mt-0.5">
-                Validación de credenciales y permisos de cuadrilla
+                {mode === 'login'
+                  ? 'Ingrese sus credenciales de taller para continuar'
+                  : 'Cree su cuenta técnica para ingresar al sistema'}
               </p>
             </div>
             <Shield className="w-4 h-4 text-amber-400" />
           </div>
 
           {error && (
-            <div className="mb-6 p-3.5 bg-rose-500/15 border border-rose-500/40 rounded-xl flex items-start gap-3 text-rose-300 text-xs font-mono">
+            <div className="mb-5 p-3.5 bg-rose-500/15 border border-rose-500/40 rounded-xl flex items-start gap-3 text-rose-300 text-xs font-mono">
               <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400 mt-0.5" />
               <span>{error}</span>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Campo Nombre (Solo en modo Register) */}
+            {mode === 'register' && (
+              <div>
+                <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-300 mb-1.5 font-bold">
+                  Nombre Completo *
+                </label>
+                <div className="relative">
+                  <User className="w-4 h-4 text-amber-500 absolute left-3.5 top-3.5" strokeWidth={2} />
+                  <input
+                    type="text"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Ej: Ing. Carlos Pérez"
+                    className="w-full bg-[#080D15] border border-white/[0.1] rounded-xl px-10 py-2.5 text-xs font-sans text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 transition-all"
+                  />
+                </div>
+              </div>
+            )}
+
             <div>
               <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-300 mb-1.5 font-bold">
-                Correo Electrónico Corporativo
+                Correo Electrónico Corporativo *
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-amber-500 absolute left-3.5 top-3.5" strokeWidth={2} />
@@ -100,20 +195,38 @@ export const LoginPage: React.FC = () => {
 
             <div>
               <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-300 mb-1.5 font-bold">
-                Contraseña de Seguridad
+                Contraseña de Seguridad *
               </label>
               <div className="relative">
                 <Lock className="w-4 h-4 text-amber-500 absolute left-3.5 top-3.5" strokeWidth={2} />
                 <input
                   type="password"
                   required
+                  minLength={6}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••••••"
+                  placeholder="Mínimo 6 caracteres"
                   className="w-full bg-[#080D15] border border-white/[0.1] rounded-xl px-10 py-2.5 text-xs font-mono text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 transition-all"
                 />
               </div>
             </div>
+
+            {/* Rol de Acceso (Solo en modo Register) */}
+            {mode === 'register' && (
+              <div>
+                <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-300 mb-1.5 font-bold">
+                  Rol de Cuadrilla *
+                </label>
+                <select
+                  value={role}
+                  onChange={(e) => setRole(e.target.value as 'OPERATOR' | 'ADMIN')}
+                  className="w-full bg-[#080D15] border border-white/[0.1] rounded-xl px-3.5 py-2.5 text-xs font-mono font-bold text-slate-100 focus:outline-none focus:border-amber-500"
+                >
+                  <option value="OPERATOR">⚙️ OPERATOR — Mecánico Especialista de Bahía</option>
+                  <option value="ADMIN">🛡️ ADMIN — Supervisor General de Taller</option>
+                </select>
+              </div>
+            )}
 
             <button
               type="submit"
@@ -123,22 +236,42 @@ export const LoginPage: React.FC = () => {
               {isLoading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></div>
-                  <span>AUTENTICANDO OPERADOR...</span>
+                  <span>{mode === 'login' ? 'AUTENTICANDO OPERADOR...' : 'REGISTRANDO OPERADOR...'}</span>
                 </>
               ) : (
                 <>
-                  <span>INICIAR TURNO EN TALLER</span>
+                  <span>{mode === 'login' ? 'INICIAR TURNO EN TALLER' : 'CREAR CUENTA & ACCEDER'}</span>
                   <ArrowRight className="w-4 h-4 stroke-[2.5]" />
                 </>
               )}
             </button>
           </form>
 
-          {/* Micro Footer */}
+          {/* Switch Prompt at Footer */}
           <div className="mt-6 pt-4 border-t border-white/[0.06] text-center">
-            <p className="text-[10px] font-mono text-slate-400">
-              SISTEMA RESTRINGIDO A PERSONAL AUTORIZADO DE MINA
-            </p>
+            {mode === 'login' ? (
+              <p className="text-xs text-slate-400 font-sans">
+                ¿No tienes cuenta de operador?{' '}
+                <button
+                  type="button"
+                  onClick={() => switchMode('register')}
+                  className="text-amber-400 hover:text-amber-300 font-bold underline ml-1 cursor-pointer"
+                >
+                  Regístrate aquí
+                </button>
+              </p>
+            ) : (
+              <p className="text-xs text-slate-400 font-sans">
+                ¿Ya tienes credenciales registradas?{' '}
+                <button
+                  type="button"
+                  onClick={() => switchMode('login')}
+                  className="text-amber-400 hover:text-amber-300 font-bold underline ml-1 cursor-pointer"
+                >
+                  Inicia sesión aquí
+                </button>
+              </p>
+            )}
           </div>
         </div>
       </div>
