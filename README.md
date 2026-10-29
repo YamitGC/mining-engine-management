@@ -1,6 +1,6 @@
-# Plataforma de Gestión de Reparaciones de Motores de Minería Pesada
+# Plataforma de Gestión de Reparaciones de Motores de Minería Pesada (MinePower)
 
-Solución integral basada en una **Arquitectura de Microservicios** para la administración técnica, seguimiento del ciclo de vida y auditoría de reparaciones de motores pesados (Caterpillar, Cummins, Komatsu) utilizados en maquinaria minera.
+Solución integral basada en una **Arquitectura de Microservicios** para la administración técnica, seguimiento del ciclo de vida y auditoría de reparaciones de motores pesados (Caterpillar, Cummins, Komatsu, etc.) utilizados en maquinaria minera.
 
 ---
 
@@ -32,7 +32,7 @@ graph TD
 | :--- | :--- | :--- | :--- |
 | **Auth Service** | Node.js, Express, TypeScript, PostgreSQL | Administración de identidades, roles (ADMIN/OPERATOR), hash seguro con bcrypt y emisión de tokens JWT. | `4000` |
 | **Business Service** | Python 3, FastAPI, SQLAlchemy, PostgreSQL | Gestión de clientes, motores, ciclo de vida de 7 estados de órdenes de reparación y auditoría cronológica. | `8000` |
-| **Frontend Web** | React 18, TypeScript, Vite, Tailwind CSS | Dashboard analítico, gestión operativa de órdenes, parque de motores, clientes y administración de usuarios. | `5173` |
+| **Frontend Web** | React 18, TypeScript, Vite, Tailwind CSS | Dashboard operativo de alta densidad, gestión de órdenes de trabajo, parque de motores, clientes y usuarios. | `5173` |
 | **Persistencia** | PostgreSQL 16 | Dos bases de datos relacionales aisladas: `auth_db` y `business_db`. | `5433` (5432) |
 
 ---
@@ -44,7 +44,7 @@ El sistema implementa el patrón de **Federación de Identidad sin Estado (State
 1. **Autenticación Exclusiva:** El Frontend se autentica únicamente contra `auth-service` enviando credenciales por `POST /api/auth/login`.
 2. **Emisión de Token Criptográfico:** `auth-service` valida la contraseña con `bcrypt.compare()` y firma un JWT utilizando el algoritmo simétrico **`HS256`** con una clave secreta de alta entropía (`JWT_SECRET`).
 3. **Consumo de la API de Negocio:** El Frontend almacena el token y lo adjunta en la cabecera HTTP `Authorization: Bearer <token>` en cada solicitud hacia `business-service`.
-4. **Validación Autónoma (Zero-Network Call):** `business-service` valida la firma criptográfica y la expiración en memoria de forma instantánea usando `PyJWT`. **No realiza llamadas HTTP a Express ni accede a la tabla de usuarios**.
+4. **Validación Autónoma (Zero-Network Call):** `business-service` valida la firma criptográfica y la expiración en memoria de forma instantánea usando `PyJWT`. **No realiza llamadas HTTP a Express ni accede a la base de datos de usuarios**.
 5. **Auditoría:** Los datos del usuario (`userId`, `name`, `email`) son extraídos directamente del payload del token para asociar la autoría de cada cambio de estado en la orden de reparación.
 
 ---
@@ -78,9 +78,23 @@ Cada cambio de estado queda registrado en la tabla de auditoría `repair_order_h
 
 ---
 
-## 5. Requisitos y Configuración de Entorno
+## 5. Diseño y Experiencia de Usuario (Frontend)
 
-Copie el archivo de variables de ejemplo:
+El cliente web implementa un diseño inspirado en software profesional de alta densidad (Linear, Retool, Grafana):
+- **Paleta sobria y funcional**: Superficies neutras en tonos pizarra azulada (`#0B0F19`, `#131B2E`, `#0F1626`) con acentos ámbar exclusivos para acciones primarias.
+- **Tipografía técnica**: Sans-serif de alta legibilidad para textos operativos y monospace tabular exclusivamente para números de serie, NITs y códigos de orden.
+- **Validaciones en tiempo real**:
+  - Restricción estricta de teléfono a dígitos numéricos.
+  - Validación de rango en fecha estimada de entrega (mínimo el día actual, máximo año 2100).
+  - Opción de fabricante "Otro" con campo dinámico para registrar cualquier marca de motor minero.
+- **Paginación y búsqueda reactiva**: Tablas paginadas con debounce en todos los listados principales.
+- **Seguridad en enrutamiento**: Guardias de ruta `ProtectedRoute` (rutas privadas con RBAC) y `PublicRoute` (evita acceso a `/login` si ya existe sesión activa).
+
+---
+
+## 6. Requisitos y Configuración de Entorno
+
+Copie el archivo de variables de entorno de ejemplo:
 
 ```bash
 cp .env.example .env
@@ -104,7 +118,7 @@ BUSINESS_DATABASE_URL=postgresql://admin:secretpassword@localhost:5433/business_
 
 ---
 
-## 6. Despliegue con Docker Compose (Recomendado)
+## 7. Despliegue con Docker Compose (Recomendado)
 
 La forma más rápida y robusta de ejecutar toda la plataforma localmente:
 
@@ -125,9 +139,9 @@ Esto levantará los 4 contenedores intercomunicados en la red virtual `platform_
 
 ---
 
-## 7. Ejecución de Pruebas Automatizadas
+## 8. Ejecución de Pruebas Automatizadas
 
-El proyecto cuenta con **20 pruebas automatizadas** que corren de forma aislada sin requerir bases de datos externas:
+El proyecto cuenta con **21 pruebas automatizadas** que corren de forma aislada sin requerir bases de datos externas:
 
 ### Pruebas de Auth Service (Jest + Supertest):
 ```bash
@@ -142,24 +156,23 @@ npm test
 cd business-service
 ./.venv/bin/pytest tests/ -v
 ```
-*8 pruebas pasadas:* Prevención de duplicados de clientes por NIT, serial único de motores, ciclo de vida de órdenes de reparación y auditoría de cambios de estado.
+*9 pruebas pasadas:* Prevención de duplicados de clientes por NIT, serial único de motores, validación de rango de fechas de entrega (presente hasta 2100), ciclo de vida de órdenes de reparación y auditoría de cambios de estado.
 
 ---
 
-## 8. Automatización CI/CD (GitHub Actions)
+## 9. Automatización CI/CD (GitHub Actions)
 
 Configurado en `.github/workflows/ci.yml`. Ante cada `push` o `Pull Request` hacia las ramas `main` o `develop`, se ejecutan de forma paralela los siguientes jobs:
 1. **`auth-service`**: Instalación, ejecución de 12 tests de Jest y verificación de compilación estricta de TypeScript (`npm run build`).
-2. **`business-service`**: Instalación, linting y ejecución de 8 tests con `pytest`.
-3. **`frontend`**: Typecheck estricto y generación de empaquetado para producción con Vite.
-4. **`docker-build-check`**: Construcción de las 3 imágenes Docker para validar el empaquetamiento.
+2. **`business-service`**: Instalación, linting y ejecución de 9 tests con `pytest`.
+3. **`frontend`**: Typecheck estricto (`tsc`) y empaquetado optimizado de producción con Vite (`npm run build`).
+4. **`docker-build-check`**: Construcción de las 3 imágenes Docker en paralelo para certificar el empaquetamiento y reproducibilidad.
 
 ---
 
-## 9. Justificación de Decisiones Técnicas para la Sustentación
+## 10. Justificación de Decisiones Técnicas para la Sustentación
 
 1. **¿Por qué JWT simétrico (HS256)?** Para mantener la arquitectura ligera y portable en un entorno de prueba técnica sin añadir complejidad de PKI (claves asimétricas), protegiendo la clave secreta mediante variables de entorno con longitud superior a 32 caracteres.
 2. **¿Por qué Database-per-Service?** Para evitar el antipatrón de base de datos compartida, garantizando que cambios en el esquema de usuarios no rompan el funcionamiento del taller de motores.
-3. **¿Por qué Consultas Parametrizadas en Auth y ORM en Business?** Para demostrar versatilidad: control total contra inyecciones SQL mediante `$1` en Node.js, y rapidez en modelado relacional complejo y migraciones con SQLAlchemy en Python.
-4. **¿Cómo se maneja la seguridad en el Frontend?** El token no se almacena en variables globales sino en almacenamiento local controlado, inyectado mediante interceptores de Axios y validando la caducidad con guardias de ruta (`ProtectedRoute`) en React Router.
-
+3. **¿Por qué Consultas Parametrizadas en Auth y ORM en Business?** Para demostrar versatilidad: control total contra inyecciones SQL mediante `$1` en Node.js, y rapidez en modelado relacional complejo y validación de tipos con SQLAlchemy en Python.
+4. **¿Cómo se maneja la seguridad en el Frontend?** El token se gestiona en almacenamiento local y se propaga en cabeceras HTTP mediante interceptores de Axios. Las rutas están protegidas bidireccionalmente: `ProtectedRoute` previene el acceso no autenticado y `PublicRoute` evita regresar al login una vez autenticado.

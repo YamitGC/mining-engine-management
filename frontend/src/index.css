@@ -8,79 +8,30 @@
   }
 
   body {
-    background-color: #0B0F17;
-    background-image: 
-      radial-gradient(rgba(245, 158, 11, 0.06) 1.5px, transparent 1.5px),
-      radial-gradient(ellipse 90% 60% at 50% -15%, rgba(217, 119, 6, 0.12), transparent 75%);
-    background-size: 28px 28px, 100% 100%;
-    background-attachment: fixed;
-    color: #F1F5F9;
+    background-color: #0B0F19;
+    color: #F8FAFC;
     min-height: 100vh;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  /* Tabular numbers for clean numeric alignment */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
   }
 }
 
 /* Custom Sleek Scrollbar */
 ::-webkit-scrollbar {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0B0F17;
+  background: #0B0F19;
 }
 ::-webkit-scrollbar-thumb {
   background: #1E293B;
-  border-radius: 9999px;
-  border: 1px solid rgba(245, 158, 11, 0.15);
+  border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #D97706;
+  background: #334155;
 }
-
-/* Mining Industrial Cards & Panels */
-.mining-panel {
-  background: linear-gradient(180deg, rgba(22, 30, 44, 0.88) 0%, rgba(14, 19, 29, 0.94) 100%);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(245, 158, 11, 0.18);
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.08), 0 12px 28px -6px rgba(0, 0, 0, 0.65);
-}
-
-.mining-card-interactive {
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-.mining-card-interactive:hover {
-  border-color: rgba(245, 158, 11, 0.45);
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.14), 0 14px 32px -8px rgba(0, 0, 0, 0.75), 0 0 25px 0 rgba(245, 158, 11, 0.12);
-  transform: translateY(-2px);
-}
-
-/* Industrial Hazard Ribbons */
-.hazard-ribbon {
-  background: repeating-linear-gradient(
-    -45deg,
-    #F59E0B,
-    #F59E0B 8px,
-    #121722 8px,
-    #121722 16px
-  );
-}
-
-.hazard-stripes-subtle {
-  background: repeating-linear-gradient(
-    -45deg,
-    rgba(245, 158, 11, 0.12),
-    rgba(245, 158, 11, 0.12) 10px,
-    transparent 10px,
-    transparent 20px
-  );
-}
-
-/* Equipment badge */
-.badge-cat {
-  background: #EAB308;
-  color: #0F172A;
-  font-weight: 900;
-  letter-spacing: 0.05em;
-}
-

@@ -28,10 +28,37 @@ async def lifespan(app: FastAPI):
             time.sleep(2)
     yield
 
+SWAGGER_DESCRIPTION = """
+## API de Negocio - MinePower 🚜⚙️
+
+Microservicio encargado de la gestión de **Clientes**, **Parque de Motores** y **Ciclo de Vida de Órdenes de Reparación**.
+
+---
+
+### 🔐 ¿Cómo autenticarse en este Swagger?
+
+Este microservicio forma parte de una **arquitectura de microservicios desacoplados**:
+* El inicio de sesión se realiza en el **Auth Service** (puerto `4000` en Express/Node.js).
+* Este servicio (**puerto `8000`**) valida el token JWT emitido por Auth sin consultar base de datos externa.
+
+#### Pasos para autorizar tus peticiones en Swagger:
+1. **Obtén tu token JWT** haciendo login contra el `auth-service` (puerto 4000):
+   ```bash
+   curl -X POST http://localhost:4000/api/auth/login \\
+     -H "Content-Type: application/json" \\
+     -d '{"email": "admin@mining.com", "password": "admin123"}'
+   ```
+   *(o copia el token de `localStorage.getItem('token')` desde el Frontend en `http://localhost:5173`)*.
+
+2. Haz clic en el botón verde **Authorize 🔓** ubicado arriba a la derecha.
+3. Pega el token JWT en el campo **Value** y presiona **Authorize**.
+4. ¡Listo! Todas las solicitudes que ejecutes en Swagger enviarán automáticamente la cabecera `Authorization: Bearer <token>`.
+"""
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
-    description="API de negocio para la gestión de clientes, motores pesados y órdenes de reparación",
+    description=SWAGGER_DESCRIPTION,
     lifespan=lifespan,
     docs_url="/docs",
     redoc_url="/redoc"

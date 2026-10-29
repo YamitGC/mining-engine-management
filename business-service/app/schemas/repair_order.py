@@ -1,6 +1,6 @@
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 from app.models.repair_order import RepairStatus
 from app.schemas.client import ClientResponse
 from app.schemas.engine import EngineResponse
@@ -23,6 +23,20 @@ class RepairOrderCreate(BaseModel):
     actual_delivery_date: Optional[datetime] = Field(None, description="Fecha real de entrega cuando aplique")
     status: Optional[RepairStatus] = Field(RepairStatus.RECIBIDO, description="Estado inicial")
     observations: Optional[str] = Field(None, description="Observaciones adicionales")
+
+    @field_validator("estimated_delivery_date")
+    @classmethod
+    def validate_estimated_delivery_date(cls, v: Optional[datetime]):
+        if v is not None:
+            now = datetime.now(timezone.utc)
+            v_utc = v if v.tzinfo else v.replace(tzinfo=timezone.utc)
+            today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            if v_utc < today_start:
+                raise ValueError("La fecha estimada de entrega no puede ser anterior al día actual.")
+            max_date = datetime(2100, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+            if v_utc > max_date:
+                raise ValueError("La fecha estimada de entrega no puede superar el año 2100.")
+        return v
 
 # Esquema de historial de estados
 class RepairOrderHistoryResponse(BaseModel):
