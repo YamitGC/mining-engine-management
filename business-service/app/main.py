@@ -9,14 +9,23 @@ from app.routers.clients import router as clients_router
 from app.routers.engines import router as engines_router
 from app.routers.repair_orders import router as repair_orders_router
 
+import time
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Inicializar tablas en PostgreSQL automáticamente al levantar
-    try:
-        Base.metadata.create_all(bind=engine)
-        print("[Business Service] Tablas de negocio sincronizadas exitosamente.")
-    except Exception as e:
-        print(f"[Business Service] Advertencia al conectar con DB en startup: {e}")
+    # Inicializar tablas en PostgreSQL con reintentos automáticos
+    retries = 15
+    while retries > 0:
+        try:
+            Base.metadata.create_all(bind=engine)
+            print("[Business Service] Tablas de negocio sincronizadas exitosamente.")
+            break
+        except Exception as e:
+            retries -= 1
+            print(f"[Business Service] Esperando a PostgreSQL ({retries} intentos restantes)... {e}")
+            if retries == 0:
+                print(f"[Business Service] Error final al inicializar DB: {e}")
+            time.sleep(2)
     yield
 
 app = FastAPI(

@@ -78,3 +78,4 @@ Genera los artefactos estáticos optimizados en `dist/`.
 docker build -t frontend-app .
 docker run -p 80:80 frontend-app
 ```
+

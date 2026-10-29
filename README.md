@@ -162,3 +162,4 @@ Configurado en `.github/workflows/ci.yml`. Ante cada `push` o `Pull Request` hac
 2. **¿Por qué Database-per-Service?** Para evitar el antipatrón de base de datos compartida, garantizando que cambios en el esquema de usuarios no rompan el funcionamiento del taller de motores.
 3. **¿Por qué Consultas Parametrizadas en Auth y ORM en Business?** Para demostrar versatilidad: control total contra inyecciones SQL mediante `$1` en Node.js, y rapidez en modelado relacional complejo y migraciones con SQLAlchemy en Python.
 4. **¿Cómo se maneja la seguridad en el Frontend?** El token no se almacena en variables globales sino en almacenamiento local controlado, inyectado mediante interceptores de Axios y validando la caducidad con guardias de ruta (`ProtectedRoute`) en React Router.
+
