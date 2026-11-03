@@ -63,7 +63,7 @@ erDiagram
         string name "VARCHAR(120)"
         string email "VARCHAR(150) UK"
         string password_hash "VARCHAR(255)"
-        string role "VARCHAR(20) [ADMIN, OPERATOR]"
+        string role "VARCHAR(20)"
         boolean is_active "DEFAULT TRUE"
         timestamp created_at
         timestamp updated_at
@@ -75,7 +75,7 @@ erDiagram
     CLIENTS {
         int id PK
         string name "VARCHAR(150)"
-        string id_type "VARCHAR(20) [NIT, RUT, RUC, CC]"
+        string id_type "VARCHAR(20)"
         string id_number "VARCHAR(50) UK"
         string email "VARCHAR(150)"
         string phone "VARCHAR(30)"
@@ -109,7 +109,7 @@ erDiagram
         string assigned_technician "VARCHAR(120)"
         timestamp estimated_delivery_date
         timestamp actual_delivery_date
-        enum status "Recibido, En diagnostico, etc."
+        string status "Recibido, En diagnostico, etc"
         text observations
         timestamp created_at
         timestamp updated_at
@@ -118,22 +118,22 @@ erDiagram
     REPAIR_ORDER_HISTORY {
         int id PK
         int repair_order_id FK
-        enum previous_status
-        enum new_status
+        string previous_status
+        string new_status
         int changed_by_user_id "Referencia logica a USERS"
         string changed_by_user_name "Snapshot operador"
         text notes
         timestamp created_at
     }
 
-    %% Relaciones relacionales dentro de business_db
-    CLIENTS ||--o{ ENGINES : "1 cliente posee N motores"
-    CLIENTS ||--o{ REPAIR_ORDERS : "1 cliente registra N ordenes"
-    ENGINES ||--o{ REPAIR_ORDERS : "1 motor tiene N ordenes"
-    REPAIR_ORDERS ||--o{ REPAIR_ORDER_HISTORY : "1 orden audita N cambios"
+    %% Relaciones en business_db
+    CLIENTS ||--o{ ENGINES : "posee"
+    CLIENTS ||--o{ REPAIR_ORDERS : "registra"
+    ENGINES ||--o{ REPAIR_ORDERS : "tiene"
+    REPAIR_ORDERS ||--o{ REPAIR_ORDER_HISTORY : "audita"
 
     %% Relacion logica desacoplada entre microservicios
-    USERS -.-> REPAIR_ORDER_HISTORY : "Asocia autoria via JWT (sin FK fisica)"
+    USERS ||..o{ REPAIR_ORDER_HISTORY : "asocia_via_jwt"
 ```
 
 ### Detalle de Entidades por Base de Datos
@@ -162,6 +162,7 @@ La plataforma modela y audita los **7 estados del proceso** en el taller:
 Cada cambio de estado queda registrado en la tabla de auditoría `repair_order_history`, documentando quién realizó el cambio, fecha y notas técnicas.
 
 ---
+
 
 ## 5. Diseño y Experiencia de Usuario (Frontend)
 
