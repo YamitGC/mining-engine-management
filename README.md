@@ -163,6 +163,7 @@ Cada cambio de estado queda registrado en la tabla de auditoría `repair_order_h
 
 ---
 
+
 ## 5. Diseño y Experiencia de Usuario (Frontend)
 
 El cliente web implementa un diseño inspirado en software profesional de alta densidad (Linear, Retool, Grafana):
