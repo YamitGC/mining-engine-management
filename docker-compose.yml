@@ -29,7 +29,7 @@ services:
     environment:
       AUTH_PORT: 4000
       NODE_ENV: production
-      JWT_SECRET: super_secret_jwt_key_min_32_characters_long_12345
+      JWT_SECRET: ${JWT_SECRET}
       JWT_ALGORITHM: HS256
       JWT_EXPIRES_IN: 8h
       AUTH_DATABASE_URL: postgresql://admin:secretpassword@postgres:5432/auth_db
@@ -49,7 +49,7 @@ services:
     restart: "no"
     environment:
       BUSINESS_PORT: 8000
-      JWT_SECRET: super_secret_jwt_key_min_32_characters_long_12345
+      JWT_SECRET: ${JWT_SECRET}
       JWT_ALGORITHM: HS256
       BUSINESS_DATABASE_URL: postgresql://admin:secretpassword@postgres:5432/business_db
     ports:

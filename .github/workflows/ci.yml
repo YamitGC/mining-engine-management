@@ -17,6 +17,8 @@ jobs:
   auth-service:
     name: Auth Service (Node.js & Jest)
     runs-on: ubuntu-latest
+    env:
+      JWT_SECRET: ci_test_jwt_secret_key_minimum_32_characters_long_12345
     defaults:
       run:
         working-directory: auth-service
@@ -47,6 +49,8 @@ jobs:
   business-service:
     name: Business Service (Python & Pytest)
     runs-on: ubuntu-latest
+    env:
+      JWT_SECRET: ci_test_jwt_secret_key_minimum_32_characters_long_12345
     defaults:
       run:
         working-directory: business-service

@@ -51,16 +51,101 @@ El sistema implementa el patrón de **Federación de Identidad sin Estado (State
 
 ## 3. Modelo de Datos y Separación de Persistencia
 
-Siguiendo el principio **Database-per-Service**, se garantiza que ningún servicio dependa ni acceda a las tablas internas del otro:
+Siguiendo el principio **Database-per-Service**, se garantiza que ningún microservicio dependa ni acceda directamente a las tablas internas del otro. A continuación se presenta el **Diagrama Entidad-Relación (MER)** visual de ambas bases de datos:
 
-### Base de Datos 1: `auth_db` (Gestión de Identidad)
-- **`users`**: `id`, `name`, `email` (UNIQUE), `password_hash`, `role` (ADMIN, OPERATOR), `is_active`, `created_at`, `updated_at`.
+```mermaid
+erDiagram
+    %% ==========================================
+    %% BASE DE DATOS 1: auth_db (Microservicio Auth)
+    %% ==========================================
+    USERS {
+        int id PK
+        string name "VARCHAR(120)"
+        string email "VARCHAR(150) UK"
+        string password_hash "VARCHAR(255)"
+        string role "VARCHAR(20) [ADMIN, OPERATOR]"
+        boolean is_active "DEFAULT TRUE"
+        timestamp created_at
+        timestamp updated_at
+    }
 
-### Base de Datos 2: `business_db` (Operación del Taller)
-- **`clients`**: `id`, `name`, `id_type`, `id_number` (UNIQUE), `email`, `phone`, `is_active`, `created_at`, `updated_at`.
-- **`engines`**: `id`, `serial_number` (UNIQUE), `manufacturer`, `model`, `engine_type`, `power_capacity`, `client_id` (FK), `is_active`, `created_at`, `updated_at`.
-- **`repair_orders`**: `id`, `order_number` (UNIQUE), `engine_id` (FK), `client_id` (FK), `reception_date`, `problem_description`, `technical_diagnosis`, `work_performed`, `assigned_technician`, `estimated_delivery_date`, `actual_delivery_date`, `status` (Enum), `observations`, `created_at`, `updated_at`.
-- **`repair_order_history`**: `id`, `repair_order_id` (FK), `previous_status`, `new_status`, `changed_by_user_id`, `changed_by_user_name`, `notes`, `created_at`.
+    %% ==========================================
+    %% BASE DE DATOS 2: business_db (Microservicio Business)
+    %% ==========================================
+    CLIENTS {
+        int id PK
+        string name "VARCHAR(150)"
+        string id_type "VARCHAR(20) [NIT, RUT, RUC, CC]"
+        string id_number "VARCHAR(50) UK"
+        string email "VARCHAR(150)"
+        string phone "VARCHAR(30)"
+        boolean is_active "DEFAULT TRUE"
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    ENGINES {
+        int id PK
+        string serial_number "VARCHAR(100) UK"
+        string manufacturer "VARCHAR(100)"
+        string model "VARCHAR(100)"
+        string engine_type "VARCHAR(100)"
+        string power_capacity "VARCHAR(50)"
+        int client_id FK
+        boolean is_active "DEFAULT TRUE"
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    REPAIR_ORDERS {
+        int id PK
+        string order_number "VARCHAR(50) UK"
+        int engine_id FK
+        int client_id FK
+        timestamp reception_date
+        text problem_description
+        text technical_diagnosis
+        text work_performed
+        string assigned_technician "VARCHAR(120)"
+        timestamp estimated_delivery_date
+        timestamp actual_delivery_date
+        enum status "Recibido, En diagnostico, etc."
+        text observations
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    REPAIR_ORDER_HISTORY {
+        int id PK
+        int repair_order_id FK
+        enum previous_status
+        enum new_status
+        int changed_by_user_id "Referencia logica a USERS"
+        string changed_by_user_name "Snapshot operador"
+        text notes
+        timestamp created_at
+    }
+
+    %% Relaciones relacionales dentro de business_db
+    CLIENTS ||--o{ ENGINES : "1 cliente posee N motores"
+    CLIENTS ||--o{ REPAIR_ORDERS : "1 cliente registra N ordenes"
+    ENGINES ||--o{ REPAIR_ORDERS : "1 motor tiene N ordenes"
+    REPAIR_ORDERS ||--o{ REPAIR_ORDER_HISTORY : "1 orden audita N cambios"
+
+    %% Relacion logica desacoplada entre microservicios
+    USERS -.-> REPAIR_ORDER_HISTORY : "Asocia autoria via JWT (sin FK fisica)"
+```
+
+### Detalle de Entidades por Base de Datos
+
+#### Base de Datos 1: `auth_db` (Gestión de Identidad y Acceso)
+- **`users`**: `id` (PK), `name`, `email` (UNIQUE), `password_hash`, `role` (ADMIN, OPERATOR), `is_active`, `created_at`, `updated_at`.
+
+#### Base de Datos 2: `business_db` (Operación Técnica del Taller)
+- **`clients`**: `id` (PK), `name`, `id_type`, `id_number` (UNIQUE), `email`, `phone`, `is_active`, `created_at`, `updated_at`.
+- **`engines`**: `id` (PK), `serial_number` (UNIQUE), `manufacturer`, `model`, `engine_type`, `power_capacity`, `client_id` (FK), `is_active`, `created_at`, `updated_at`.
+- **`repair_orders`**: `id` (PK), `order_number` (UNIQUE), `engine_id` (FK), `client_id` (FK), `reception_date`, `problem_description`, `technical_diagnosis`, `work_performed`, `assigned_technician`, `estimated_delivery_date`, `actual_delivery_date`, `status` (Enum), `observations`, `created_at`, `updated_at`.
+- **`repair_order_history`**: `id` (PK), `repair_order_id` (FK), `previous_status`, `new_status`, `changed_by_user_id`, `changed_by_user_name`, `notes`, `created_at`.
 
 ---
 
@@ -100,7 +185,15 @@ Copie el archivo de variables de entorno de ejemplo:
 cp .env.example .env
 ```
 
-Contenido de `.env`:
+Genere una clave criptográfica de alta entropía (mínimo 32 caracteres requeridos por la validación *Fail-Fast*):
+
+```bash
+openssl rand -base64 48
+```
+
+Pegue la clave generada en la variable `JWT_SECRET` dentro de su archivo `.env`.
+
+Estructura de referencia de `.env`:
 ```env
 # Shared JWT Configuration
 JWT_SECRET=super_secret_jwt_key_min_32_characters_long_12345
